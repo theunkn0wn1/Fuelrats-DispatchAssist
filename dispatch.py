@@ -1,22 +1,62 @@
+import hexchat as hc
 __module_name__ = "dispatch"
 __module_version__ = "0.0.1"
 __module_description__ = "Assist with automating trivial FuelRat dispatch interactions"
-import hexchat as hc
-import time
 
-hc.prnt("=============\ncustom module hc.py loaded!\n* Author:theunkn0wn1\n===========")
+hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 
 
 # Decorators
 def eat_all(wrapped_function):
-    def potao(*args):
-        wrapped_function(args[0],args[1],args[2])
+    """:returns hc.EAT_ALL at end of wrapped function"""
+    def wrapper(*args):
+        wrapped_function(args[0], args[1], args[2])
         return hc.EAT_ALL
-    return potao
+    return wrapper
+
+
+def required_args(num):
+    def decorator(my_function):
+        def fun_wrapper(*func_args):
+            log("[DEBUG]", func_args[0])
+            log("[DEBUG]", len(func_args[1]))
+            if len(func_args[1]) != num:
+                print("more arguments required. Got {} expected {}".format(len(func_args[1]), num))
+                return -1
+            else:
+                my_function(func_args)
+        return fun_wrapper
+    return decorator
 
 
 def log(trace, msg):
     print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
+
+
+class Tracker:
+    """Handles case storage and handling"""
+    def __init__(self):
+        self.database = {}
+        x = self
+        log("Tracker", "Initializing new blank database...")
+
+    @required_args(7)
+    def append(self, args):
+        case_id = int(args[1])  # mecha's case id
+        client_name = args[2]  # clients IRC name
+        system = args[3]  # in-game location of client
+        platform = args[4]  # client platform
+        is_cr = bool(args[5])  # CR status of client
+        language = args[6]  # client language
+        new_entry = {case_id: {'client_name': client_name, 'system': system, 'platform': platform,
+                          'cr': is_cr, 'language': language}}
+        self.database.update(new_entry)
+        return 1
+
+    @required_args(1)
+    def rm(self, args):
+        log("rm", "removing case with CID {}...".format(args))
+        return self.database.pop(args, None)
 
 
 class Commands:
@@ -32,8 +72,9 @@ class Commands:
         print(word_eol)  # array of size 1, the whole command invoked
         print(userdata)  # not sure what this does yet :/
 
+    @staticmethod
     @eat_all
-    def oxy_check(self, a, b, c):
+    def oxy_check( a, b, c):
         name = "oxy_check"
         log(name, "checking o2 for client:\t{cmdr}".format(cmdr=a[1]))
         hc.command("say greetings " + a[1] + ",are you on emergency o2?(blue timer top right)")
@@ -125,15 +166,10 @@ class Commands:
     def stage(x, y, z):
         log("stage", "x = {}\ty={}".format(x, y))
 
-    @staticmethod
-    @eat_all
-    def mk(x, y, z):
-        """manually creates a new case in the DB"""
-        pass
-
 
 def init():
     cmd = Commands()
+    board = Tracker()
     log("Init", "Adding hooks!")
     try:
         hc.hook_command("potato", cmd.inject_case)
@@ -146,6 +182,8 @@ def init():
         hc.hook_command("inject", cmd.inject_case)
         hc.hook_command("dClear", cmd.clear_drill)
         hc.hook_command("stage", cmd.stage)
+        hc.hook_command("new", board.append)
+        hc.hook_command("purge", board.rm)
     # hc.hook_print("Channel Message",cmd.print_hook)
     # hc.hook_print("Beep",cmd.print_hook)
     # hc.hook_print("Generic message",cmd.generic_msg)
