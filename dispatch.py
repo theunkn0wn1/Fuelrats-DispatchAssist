@@ -1,8 +1,10 @@
 import hexchat as hc
+
+# Globals
 __module_name__ = "dispatch"
 __module_version__ = "0.0.1"
 __module_description__ = "Assist with automating trivial FuelRat dispatch interactions"
-
+database = {}
 hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 
 
@@ -20,8 +22,8 @@ def required_args(num):
         def fun_wrapper(*func_args):
             log("[DEBUG]", func_args[0])
             log("[DEBUG]", len(func_args[1]))
-            if len(func_args[1]) != num:
-                print("more arguments required. Got {} expected {}".format(len(func_args[1]), num))
+            if len(func_args[1]) != num+1:
+                print("argument mismatch. Got {} expected {}".format(len(func_args[1]), num))
                 return -1
             else:
                 my_function(func_args)
@@ -36,12 +38,20 @@ def log(trace, msg):
 class Tracker:
     """Handles case storage and handling"""
     def __init__(self):
-        self.database = {}
-        x = self
-        log("Tracker", "Initializing new blank database...")
+        global database
+        log("Tracker", "Initializing database...")
+        database = {}
 
-    @required_args(7)
-    def append(self, args):
+    @staticmethod
+    @required_args(0)
+    def readout(*args):
+        print("readout", database)
+
+    @staticmethod
+    @required_args(6)
+    def append(args):
+        args = args[0]
+        log('debug',"args =\t{}".format(args))
         case_id = int(args[1])  # mecha's case id
         client_name = args[2]  # clients IRC name
         system = args[3]  # in-game location of client
@@ -50,13 +60,22 @@ class Tracker:
         language = args[6]  # client language
         new_entry = {case_id: {'client_name': client_name, 'system': system, 'platform': platform,
                           'cr': is_cr, 'language': language}}
-        self.database.update(new_entry)
+        database.update(new_entry)
+        log("append", "new entry created...")
         return 1
 
+    @staticmethod
     @required_args(1)
-    def rm(self, args):
-        log("rm", "removing case with CID {}...".format(args))
-        return self.database.pop(args, None)
+    def rm(args):
+        cid = int(args[0][1])
+        log("rm", "removing case with CID {}...".format(cid))
+        try:
+            if database.pop(cid, None) is None:
+                log("rm", "Failed to remove {}, no such case {}.".format(cid))
+            else:
+                log("rm", "successfully removed case {}".format(cid))
+        except Exception:
+            log("rm", "unable to remove case {}. An unknown error occurred.")
 
 
 class Commands:
@@ -183,7 +202,8 @@ def init():
         hc.hook_command("dClear", cmd.clear_drill)
         hc.hook_command("stage", cmd.stage)
         hc.hook_command("new", board.append)
-        hc.hook_command("purge", board.rm)
+        hc.hook_command("rm", board.rm)
+        hc.hook_command("readout", board.readout)
     # hc.hook_print("Channel Message",cmd.print_hook)
     # hc.hook_print("Beep",cmd.print_hook)
     # hc.hook_print("Generic message",cmd.generic_msg)
