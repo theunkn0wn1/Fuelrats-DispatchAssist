@@ -7,6 +7,8 @@ __module_description__ = "Assist with automating trivial FuelRat dispatch intera
 database = {}
 hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 
+# Debug constants
+x = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
 
 # Decorators
 def eat_all(wrapped_function):
@@ -17,16 +19,18 @@ def eat_all(wrapped_function):
     return wrapper
 
 
-def required_args(num):
+def required_args(num,is_strict = False):
     def decorator(my_function):
         def fun_wrapper(*func_args):
             log("[DEBUG]", func_args[0])
             log("[DEBUG]", len(func_args[1]))
-            if len(func_args[1]) != num+1:
+            if len(func_args[1]) == num+1:
+                my_function
+            elif len(func_args[1]) >= num+1 and not is_strict:
+                my_function(func_args)
+            else:
                 print("argument mismatch. Got {} expected {}".format(len(func_args[1]), num))
                 return -1
-            else:
-                my_function(func_args)
         return fun_wrapper
     return decorator
 
@@ -46,6 +50,41 @@ class Tracker:
     @required_args(0)
     def readout(*args):
         print("readout", database)
+
+    @staticmethod
+    def inject(list_arguments, is_capture=False, capture_data=None):
+        """Generates a new case via  !inject"""
+
+        def on_message_captured(capture):
+            """Parses target message events"""
+            log("on_message_captured", "parsing capture event with data: {}".format(capture))
+            # [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened',
+            #  'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
+            if capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
+                log("on_message_captured"," invalid capture event")
+            else:
+                i = 0
+                for phrase in capture:
+                    if phrase == 'PC' or phrase == 'PS4' or phrase == 'XB':
+                        system = phrase
+                    elif phrase[:5] == 'case':
+                        capStr = capture[i-1]  # phrase before is the client name
+                        capStr = capStr[:len(capStr)-2]  # strip the 's from the end
+                        capStr = capStr.strip(':')  # and the : from the start
+                        client = capStr  # And we have our product!
+                    i+=1
+
+            Tracker.append([0,'name',system])
+            # todo: Parse the capture data and add to db
+        words = ['client', 'system', 'platform']
+        if is_capture:  # if this is called from the msg handler
+            log("inject:capture", "spawning internal case with capture_data = {}".format(capture_data))
+            on_message_captured(capture_data)
+        elif len(list_arguments) > len(words):
+            log("inject", "Argument count exceeded limit({}). please try again with less arguments.".format(len(words)))
+        else:
+            for word in words:
+                pass  # TODO build a case via arguments
 
     @staticmethod
     @required_args(6)
@@ -85,11 +124,10 @@ class Commands:
 
     @staticmethod
     @eat_all
-    def command_callback(word, word_eol, userdata):
-        hc.prnt("Called back!")
-        print(word)  # list of words, including the invoked command
-        print(word_eol)  # array of size 1, the whole command invoked
-        print(userdata)  # not sure what this does yet :/
+    def run_tests(word, word_eol, userdata):
+        log("run_tests", "Running Tracker.inject Test 1...")
+        Tracker.inject(None, True, None)  # todo replace final none with debug string
+)
 
     @staticmethod
     @eat_all
@@ -192,7 +230,7 @@ def init():
     log("Init", "Adding hooks!")
     try:
         hc.hook_command("potato", cmd.inject_case)
-        hc.hook_command("test", cmd.command_callback)
+        hc.hook_command("test", cmd.run_tests)
         hc.hook_command("o2", cmd.oxy_check)
         hc.hook_command("test2", cmd.print_test)
         hc.hook_command("clear", cmd.clear)
