@@ -19,7 +19,7 @@ def eat_all(wrapped_function):
     return wrapper
 
 
-def required_args(num,is_strict = False):
+def required_args(num, is_strict=False):
     def decorator(my_function):
         def fun_wrapper(*func_args):
             log("[DEBUG]", func_args[0])
@@ -47,7 +47,6 @@ class Tracker:
         database = {}
 
     @staticmethod
-    @required_args(0)
     def readout(*args):
         print("readout", database)
 
@@ -60,43 +59,51 @@ class Tracker:
             log("on_message_captured", "parsing capture event with data: {}".format(capture))
             # [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened',
             #  'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
-            if capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
+            if capture is None:
+                log("on_message_captured", "Invalid capture event")
+            elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
                 log("on_message_captured"," invalid capture event")
             else:
                 i = 0
+                client = None
+                platform = 'error'
+                case = -1
                 for phrase in capture:
                     if phrase == 'PC' or phrase == 'PS4' or phrase == 'XB':
-                        system = phrase
+                        platform = phrase
                     elif phrase[:5] == 'case':
-                        capStr = capture[i-1]  # phrase before is the client name
-                        capStr = capStr[:len(capStr)-2]  # strip the 's from the end
-                        capStr = capStr.strip(':')  # and the : from the start
-                        client = capStr  # And we have our product!
-                    i+=1
+                        parsed_string = capture[i-1]  # phrase before is the client name
+                        parsed_string = parsed_string[:len(parsed_string)-2]  # strip the 's from the end
+                        parsed_string = parsed_string.strip(':')  # and the : from the start
+                        client = parsed_string  # And we have our product!
+                    elif phrase == "(Case":
+                        case = capture_data[i+1].strip(',')
 
-            Tracker.append([0,'name',system])
-            # todo: Parse the capture data and add to db
-        words = ['client', 'system', 'platform']
-        if is_capture:  # if this is called from the msg handler
-            log("inject:capture", "spawning internal case with capture_data = {}".format(capture_data))
-            on_message_captured(capture_data)
-        elif len(list_arguments) > len(words):
-            log("inject", "Argument count exceeded limit({}). please try again with less arguments.".format(len(words)))
-        else:
-            for word in words:
-                pass  # TODO build a case via arguments
+                    i += 1
+                log("on_message_captured", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
+                temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'EN-us',
+                             'client': client, 'system': 'Sol'}
+                Tracker.append(temp_dict)
+        if is_capture:
+            if capture_data is None or capture_data == "":
+                log("Tracker", "[FAIL]\t capture_data was None or was blank")
+            else:
+                on_message_captured(capture_data)
+            log("Tracker", "not capture data")
 
     @staticmethod
-    @required_args(6)
     def append(args):
-        args = args[0]
+        """Appends a new entry to the db
+        expected: None,id,client,system,platform,cr,language
+        """
+
         log('debug',"args =\t{}".format(args))
-        case_id = int(args[1])  # mecha's case id
-        client_name = args[2]  # clients IRC name
-        system = args[3]  # in-game location of client
-        platform = args[4]  # client platform
-        is_cr = bool(args[5])  # CR status of client
-        language = args[6]  # client language
+        case_id = int(args['case'])  # mecha's case id
+        client_name = args['client']  # clients IRC name
+        system = args['system']  # in-game location of client
+        platform = args['platform']  # client platform
+        is_cr = bool(args['cr'])  # CR status of client
+        language = args['lang']  # client language
         new_entry = {case_id: {'client_name': client_name, 'system': system, 'platform': platform,
                           'cr': is_cr, 'language': language}}
         database.update(new_entry)
@@ -104,13 +111,12 @@ class Tracker:
         return 1
 
     @staticmethod
-    @required_args(1)
-    def rm(args):
-        cid = int(args[0][1])
+    def rm(x, y, z):
+        cid = int(x[1])
         log("rm", "removing case with CID {}...".format(cid))
         try:
             if database.pop(cid, None) is None:
-                log("rm", "Failed to remove {}, no such case {}.".format(cid))
+                log("rm", "Failed to remove {cid}, no such case {cid}.".format(cid=cid))
             else:
                 log("rm", "successfully removed case {}".format(cid))
         except Exception:
@@ -127,7 +133,9 @@ class Commands:
     def run_tests(word, word_eol, userdata):
         log("run_tests", "Running Tracker.inject Test 1...")
         Tracker.inject(None, True, None)  # todo replace final none with debug string
-)
+        log("run_tests", "running test 2")
+        Tracker.inject([], True, x)
+        log("run_tests", "done!")
 
     @staticmethod
     @eat_all
@@ -228,20 +236,25 @@ def init():
     cmd = Commands()
     board = Tracker()
     log("Init", "Adding hooks!")
+    commands = {
+        'potato': cmd.inject_case,
+        'test': cmd.run_tests,
+        'o2': cmd.oxy_check,
+        "test2": cmd.print_test,
+        "clear": cmd.clear,
+        "o2k": cmd.oxy_ack,
+        "go": cmd.go,
+        "inject": cmd.inject_case,
+        "dClear": cmd.clear_drill,
+        "stage": cmd.stage,
+        "new": board.append,
+        "del": board.rm,
+        "readout": board.readout
+    }
     try:
-        hc.hook_command("potato", cmd.inject_case)
-        hc.hook_command("test", cmd.run_tests)
-        hc.hook_command("o2", cmd.oxy_check)
-        hc.hook_command("test2", cmd.print_test)
-        hc.hook_command("clear", cmd.clear)
-        hc.hook_command("o2k", cmd.oxy_ack)
-        hc.hook_command("go", cmd.go)
-        hc.hook_command("inject", cmd.inject_case)
-        hc.hook_command("dClear", cmd.clear_drill)
-        hc.hook_command("stage", cmd.stage)
-        hc.hook_command("new", board.append)
-        hc.hook_command("rm", board.rm)
-        hc.hook_command("readout", board.readout)
+        for key in commands:
+            log("init", "adding hook for\t{}".format(key))
+            hc.hook_command(key, commands[key])
     # hc.hook_print("Channel Message",cmd.print_hook)
     # hc.hook_print("Beep",cmd.print_hook)
     # hc.hook_print("Generic message",cmd.generic_msg)
