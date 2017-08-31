@@ -53,6 +53,12 @@ class Tracker:
     @staticmethod
     def inject(list_arguments, is_capture=False, capture_data=None):
         """Generates a new case via  !inject"""
+        if len(list_arguments) < 3:
+            return -1  # not enough arguments
+        else:
+            inject_args = {'client': list_arguments[1], 'system': list_arguments[3], 'platform': list_arguments[2]}
+            # order: client, platform, system
+            hc.command("say !inject {} {} {}".format(inject_args['client'], inject_args['platform'], inject_args['system']))
 
         def on_message_captured(capture):
             """Parses target message events"""
@@ -65,8 +71,8 @@ class Tracker:
                 log("on_message_captured"," invalid capture event")
             else:
                 i = 0
-                client = None
-                platform = 'error'
+                client = inject_args['client']
+                platform = inject_args['system']
                 case = -1
                 for phrase in capture:
                     if phrase == 'PC' or phrase == 'PS4' or phrase == 'XB':
@@ -97,7 +103,7 @@ class Tracker:
         expected: None,id,client,system,platform,cr,language
         """
 
-        log('debug',"args =\t{}".format(args))
+        log('debug', "args =\t{}".format(args))
         case_id = int(args['case'])  # mecha's case id
         client_name = args['client']  # clients IRC name
         system = args['system']  # in-game location of client
@@ -111,8 +117,8 @@ class Tracker:
         return 1
 
     @staticmethod
-    def rm(x, y, z):
-        cid = int(x[1])
+    def rm(word, word_eol, user_data):
+        cid = int(word[1])
         log("rm", "removing case with CID {}...".format(cid))
         try:
             if database.pop(cid, None) is None:
@@ -132,7 +138,7 @@ class Commands:
     @eat_all
     def run_tests(word, word_eol, userdata):
         log("run_tests", "Running Tracker.inject Test 1...")
-        Tracker.inject(None, True, None)  # todo replace final none with debug string
+        Tracker.inject(None, True, None)
         log("run_tests", "running test 2")
         Tracker.inject([], True, x)
         log("run_tests", "done!")
@@ -237,7 +243,7 @@ def init():
     board = Tracker()
     log("Init", "Adding hooks!")
     commands = {
-        'potato': cmd.inject_case,
+        # 'potato': cmd.inject_case,
         'test': cmd.run_tests,
         'o2': cmd.oxy_check,
         "test2": cmd.print_test,
@@ -249,6 +255,7 @@ def init():
         "stage": cmd.stage,
         "new": board.append,
         "del": board.rm,
+        'rm': board.rm,
         "readout": board.readout
     }
     try:
