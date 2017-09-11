@@ -8,8 +8,8 @@ database = {}
 hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 
 # Debug constants
-x = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
-
+debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
+debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '9,', 'PC)']
 # Decorators
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
@@ -99,7 +99,7 @@ class Tracker:
                 for phrase in capture:
                     if phrase == 'PC)' or phrase == 'PS4)' or phrase == 'XB)':
                         log('step2', 'searching for platform...')
-                        platform = phrase
+                        platform = phrase.strip(')')
                         log('step2', 'platform is {}'.format(platform))
                     elif phrase[:5] == 'case':
                         log('step3', 'looking for client name...')
@@ -118,9 +118,9 @@ class Tracker:
                     i += 1
                 log("on_message_captured", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
                 temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'EN-us',
-                             'client': client, 'system': 'Sol'}
+                             'client': client, 'system': 'Sol', 'stage': 0}
                 Tracker.append(temp_dict)
-            log("miss?","miss?")
+
         if is_capture:
             if capture_data is None or capture_data == "":
                 log("Tracker", "[FAIL]\t capture_data was None or was blank")
@@ -146,8 +146,9 @@ class Tracker:
         platform = args['platform']  # client platform
         is_cr = bool(args['cr'])  # CR status of client
         language = args['lang']  # client language
+        stage = args['stage']
         new_entry = {case_id: {'client_name': client_name, 'system': system, 'platform': platform,
-                          'cr': is_cr, 'language': language}}
+                          'cr': is_cr, 'language': language, 'stage': stage}}
         database.update(new_entry)
         log("append", "new entry created...")
         return 1
@@ -176,7 +177,9 @@ class Commands:
         log("run_tests", "Running Tracker.inject Test 1...")
         Tracker.inject(None, True, None)
         log("run_tests", "running test 2")
-        print(Tracker.inject([None, 'clientName', 'systemName', 'PC'], True, x))
+        print(Tracker.inject([None, 'clientName', 'systemName', 'PC'], True, debug_constant_a))
+        log('run_tests', 'running test 3')
+        Tracker.inject([None, None, None], True, debug_constant_B)
         log("run_tests", "done!")
 
     @staticmethod
@@ -231,7 +234,8 @@ class Commands:
         expected order of a: id,rat,client
         """
         name = "clear"
-        commander = a[3]
+        entry = database.get(a[1])
+        commander = entry['client']
 
         case = a[1]
         rat = a[2]
@@ -271,7 +275,42 @@ class Commands:
     @staticmethod
     @eat_all
     def stage(x, y, z):
-        log("stage", "x = {}\ty={}".format(x, y))
+        if len(x) <= 1:
+            log('stage', 'expected format /stage {mode} {CID}')
+        else:
+            mode = x[1]
+            cid = int(x[2])
+            entry = database.get(cid, False)
+            if mode == 'get' or mode == 'status':
+                log('stage; [get]', 'attempting to retrieve entry with key {} of type {}'.format(cid, type(cid)))
+                if entry is not False:
+                    log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=cid, status=entry['stage']))
+                else:
+                    log('stage', 'entry not found.')
+            elif mode == 'up':
+                entry['stage'] += 1
+                log('stage:up', 'stage set to {}'.format(entry['stage']))
+            elif mode == 'back':
+                pass
+            else:
+                log("stage", 'unknown mode {}'.format(mode))
+        # log("stage", 'current stage is {stage}'.format())
+
+
+class StageManager:
+    @staticmethod
+    def friend_request(case_object):
+        """Tells client to add rat(s) to friends list"""
+        log('so uh...', 'this is a thing apparently\n{}'.format(case_object))
+        # Todo: implement friend_request
+
+    @staticmethod
+    def advance_stage(case_object):
+        """Advances the case's stage and does the next step"""
+        stage = case_object['stage']
+        log('advance_stage', "advancing case #{} to step {}".format(case_object['case'], stage + 1))
+        if stage == 0:
+            pass
 
 
 def init():
@@ -279,7 +318,7 @@ def init():
     board = Tracker()
     log("Init", "Adding hooks!")
     commands = {
-        # 'potato': cmd.inject_case,
+        # 'potato': cmd.temp,
         'test': cmd.run_tests,
         'o2': cmd.oxy_check,
         "test2": cmd.print_test,
@@ -304,7 +343,7 @@ def init():
     # hc.hook_print("Channel Message",cmd.print_hook)
     # hc.hook_print("Beep",cmd.print_hook)
     # hc.hook_print("Generic message",cmd.generic_msg)
-    # hc.hook_server("PRIVMSG",cmd.server_hook)#x = MyClass() #hooks when the user is mentioned
+    # hc.hook_server("PRIVMSG",cmd.server_hook)#debug_constant_a = MyClass() #hooks when the user is mentioned
     except Exception as e:
         log("Init", "Failure adding hooks! error reads as follows:")
         log("Init", e)
