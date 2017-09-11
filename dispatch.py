@@ -9,8 +9,10 @@ hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\
 
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
-debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '9,', 'PC)']
+debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
 # Decorators
+
+
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
     def wrapper(*args):
@@ -37,6 +39,18 @@ def required_args(num, is_strict=False):
 
 def log(trace, msg):
     print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
+
+
+class Translations:
+    class EN:
+        fr = {
+            'pre': "Please add the following rats to your friends list: {rats}",
+            'fact': "fact data is factual"
+        }
+        wr = {
+            'pre': "Now, please invite your rats to the wing.",
+            'fact': "you can do so by... {fact}"
+        }
 
 
 def on_message_received(*args):
@@ -169,7 +183,7 @@ class Tracker:
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
     def __init__(self):
-        pass
+        translate = Translations()
 
     @staticmethod
     @eat_all
@@ -274,7 +288,8 @@ class Commands:
 
     @staticmethod
     @eat_all
-    def stage(x, y, z):
+    def stage( x, y, z):
+
         if len(x) <= 1:
             log('stage', 'expected format /stage {mode} {CID}')
         else:
@@ -288,10 +303,18 @@ class Commands:
                 else:
                     log('stage', 'entry not found.')
             elif mode == 'up':
+                stage = entry['stage']
+                if stage == 0:
+                    StageManager.friend_request(entry)
+                elif stage == 1:
+                    StageManager.wing_invite(entry)
                 entry['stage'] += 1
                 log('stage:up', 'stage set to {}'.format(entry['stage']))
             elif mode == 'back':
                 pass
+            elif mode == "fr":
+                StageManager.friend_request(entry)
+
             else:
                 log("stage", 'unknown mode {}'.format(mode))
         # log("stage", 'current stage is {stage}'.format())
@@ -299,18 +322,38 @@ class Commands:
 
 class StageManager:
     @staticmethod
+    def say(message, colour=None):
+        if colour is None:
+            hc.command("say {msg}".format(msg=message))
+        else:
+            hc.command("say \003{color} {msg}".format(color=colour, msg=message))
+
+    @staticmethod
     def friend_request(case_object):
         """Tells client to add rat(s) to friends list"""
-        log('so uh...', 'this is a thing apparently\n{}'.format(case_object))
-        # Todo: implement friend_request
+        platform = case_object['platform']
+        client = case_object['client_name']
+        if case_object['language'] == 'EN-us':
+            log("stage:fr", Translations.EN.fr['pre'].format(rats="Awesome_rat_1,Awesome_rat_Potato!"))
+            log("stage:fr", Translations.EN.fr['fact'])
+        log("friend_request", "Client {client} is on platform {platform}".format(client=client, platform=platform))
+        # TODO: implement other languages, add option to outsource facts to Mecha
+
+    @staticmethod
+    def wing_invite(case_object):
+        if case_object['language'] == 'EN-us':
+            log('[OUTPUT]', Translations.EN.wr['pre'])
+            log('[OUTPUT]', Translations.EN.wr['fact'])
+            StageManager.say(Translations.EN.wr['pre'], '03')
+            StageManager.say(Translations.EN.wr['fact'], '03')
+            # TODO: implement other languages,
+            # TODO implement Mecha facts
 
     @staticmethod
     def advance_stage(case_object):
         """Advances the case's stage and does the next step"""
         stage = case_object['stage']
         log('advance_stage', "advancing case #{} to step {}".format(case_object['case'], stage + 1))
-        if stage == 0:
-            pass
 
 
 def init():
@@ -332,6 +375,7 @@ def init():
         "del": board.rm,
         'rm': board.rm,
         "readout": board.readout
+
     }
     try:
         for key in commands:
