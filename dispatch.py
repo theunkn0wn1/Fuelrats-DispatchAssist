@@ -1,3 +1,5 @@
+from functools import wraps  # so decorators don't swallow docstrings
+
 import hexchat as hc
 
 # Globals
@@ -5,16 +7,16 @@ __module_name__ = "dispatch"
 __module_version__ = "0.0.1"
 __module_description__ = "Assist with automating trivial FuelRat dispatch interactions"
 database = {}
-hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
-
+verbose_logging = True  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
-debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
+debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
+hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 # Decorators
-
 
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
+    @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
     def wrapper(*args):
         wrapped_function(args[0], args[1], args[2])
         return hc.EAT_ALL
@@ -37,19 +39,39 @@ def required_args(num, is_strict=False):
     return decorator
 
 
-def log(trace, msg):
+def log(trace, msg, verbose=True):
+
     print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
 
 
 class Translations:
-    class EN:
+    """container for translations"""
+
+    class English:
+        """Container for English facts"""
         fr = {
             'pre': "Please add the following rats to your friends list: {rats}",
-            'fact': "fact data is factual"
+            'fact': "!{platform}fr {client}"
         }
         wr = {
             'pre': "Now, please invite your rats to the wing.",
-            'fact': "you can do so by... {fact}"
+            'fact': "!{platform}wing {client}"
+        }
+        wb = {
+            'pre': "lastly, please blind us with your beacon!",
+            'fact': "!{platform}beacon {client}"
+        }
+        clear = {
+            'pass': "{client} please stick around with your rats for some useful tips!",
+            'fail':
+                {
+                    '+': "{client} Im sorry we could not get you in time. please stick with your rats to learn some"
+                                 "useful tips as to avoid happening again",
+                    '-': "{client}, Im sorry we could not get you in time, if you could please join us in"
+                                 "#debrief our rats can give you some great advise as to avoid this happening again."
+                                 "\n you can do so by typing '/join #debrief ' "
+                }
+
         }
 
 
@@ -58,9 +80,7 @@ def on_message_received(*args):
     channel = phrase[2]
     sender = phrase[0]
     try:
-        if channel != '#RatChat' and channel != '#ratchat':
-            log('on_message_received', 'sender = {sender}\nData= {data}'.format(sender=sender, data=phrase))
-        elif sender == ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
+        if sender == ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
             log("on_message_received", "sender is correct, attempting parse...")
             Tracker.inject([None, None, None], True, phrase)
         else:
@@ -102,9 +122,9 @@ class Tracker:
             if capture is None:
                 log("on_message_captured", "Invalid capture event")
             elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
-                log("on_message_captured"," invalid capture event")
+                log("on_message_captured", " invalid capture event")
             else:
-                log("on_message_captured", 'Beginning parse attempt ZZZZzzzZz...')
+                log("on_message_captured", 'Beginning parse attempt')
                 i = 0
                 # client = inject_args['client']
                 # platform = inject_args['system']
@@ -125,13 +145,13 @@ class Tracker:
                     elif phrase == "(Case":
                         log('step4', 'searching for CaseID...')
                         case = capture_data[i+1].strip(',')
-                        log('step4', 'cid is {CID}'.format(CID = case))
+                        log('step4', 'cid is {CID}'.format(CID=case))
                     else:
                         # log("failed:", "word not read: {}".format(phrase))
                         pass
                     i += 1
                 log("on_message_captured", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
-                temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'EN-us',
+                temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'English-us',
                              'client': client, 'system': 'Sol', 'stage': 0}
                 Tracker.append(temp_dict)
 
@@ -162,7 +182,10 @@ class Tracker:
         language = args['lang']  # client language
         stage = args['stage']
         new_entry = {case_id: {'client_name': client_name, 'system': system, 'platform': platform,
-                          'cr': is_cr, 'language': language, 'stage': stage}}
+                          'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
+                               'has_forwarded': False, 'rats': {
+                                0: None, 1: None, 2: None
+                                }}}
         database.update(new_entry)
         log("append", "new entry created...")
         return 1
@@ -188,6 +211,7 @@ class Commands:
     @staticmethod
     @eat_all
     def run_tests(word, word_eol, userdata):
+        """Runs tests and generates some dummy cases"""
         log("run_tests", "Running Tracker.inject Test 1...")
         Tracker.inject(None, True, None)
         log("run_tests", "running test 2")
@@ -289,72 +313,174 @@ class Commands:
     @staticmethod
     @eat_all
     def stage( x, y, z):
-
-        if len(x) <= 1:
+        event_args = [None]*3
+        if len(x) < 1:
             log('stage', 'expected format /stage {mode} {CID}')
         else:
             mode = x[1]
             cid = int(x[2])
-            entry = database.get(cid, False)
-            if mode == 'get' or mode == 'status':
-                log('stage; [get]', 'attempting to retrieve entry with key {} of type {}'.format(cid, type(cid)))
-                if entry is not False:
-                    log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=cid, status=entry['stage']))
-                else:
-                    log('stage', 'entry not found.')
-            elif mode == 'up':
-                stage = entry['stage']
-                if stage == 0:
-                    StageManager.friend_request(entry)
-                elif stage == 1:
-                    StageManager.wing_invite(entry)
-                entry['stage'] += 1
-                log('stage:up', 'stage set to {}'.format(entry['stage']))
-            elif mode == 'back':
-                pass
-            elif mode == "fr":
-                StageManager.friend_request(entry)
+            try:  # if we have extra args
+                event_args[0] = x[3]
+                event_args[1] = x[4]
+                event_args[2] = x[5]
+            except IndexError:
+                pass  # if not we get an error we can suppress
 
+            if StageManager.do_stage(cid, mode, event_args[0], event_args[1], event_args[2]):
+                pass
             else:
                 log("stage", 'unknown mode {}'.format(mode))
         # log("stage", 'current stage is {stage}'.format())
 
 
 class StageManager:
+    """Tracks client stage and responds accordingly"""
     @staticmethod
     def say(message, colour=None):
+        """Output a message into the channel (*this is server-side!*)"""
         if colour is None:
             hc.command("say {msg}".format(msg=message))
         else:
             hc.command("say \003{color} {msg}".format(color=colour, msg=message))
 
     @staticmethod
+    def change_platform(key, platform, case_object):
+        """Changes a client's platform
+        :param key: database key for client
+        :param platform: new platform
+        :param case_object: clients case object
+        """
+        global database
+        if platform == 'ps' or platform == 'pc' or platform == 'xb':
+            formed_dict = case_object
+            formed_dict['platform'] = platform
+            database.update({key:formed_dict})
+            log('change_platform', "Successfully updated platform for case {}".format(key))
+
+    @staticmethod
     def friend_request(case_object):
         """Tells client to add rat(s) to friends list"""
         platform = case_object['platform']
         client = case_object['client_name']
-        if case_object['language'] == 'EN-us':
-            log("stage:fr", Translations.EN.fr['pre'].format(rats="Awesome_rat_1,Awesome_rat_Potato!"))
-            log("stage:fr", Translations.EN.fr['fact'])
+        if case_object['language'] == 'English-us':
+            StageManager.say(Translations.English.fr['pre'].format(rats="Awesome_rat_1,Awesome_rat_Potato!"))
+            StageManager.say(Translations.English.fr['fact'].format(client=client, platform=platform))
         log("friend_request", "Client {client} is on platform {platform}".format(client=client, platform=platform))
         # TODO: implement other languages, add option to outsource facts to Mecha
 
     @staticmethod
     def wing_invite(case_object):
-        if case_object['language'] == 'EN-us':
-            log('[OUTPUT]', Translations.EN.wr['pre'])
-            log('[OUTPUT]', Translations.EN.wr['fact'])
-            StageManager.say(Translations.EN.wr['pre'], '03')
-            StageManager.say(Translations.EN.wr['fact'], '03')
+        if case_object['language'] == 'English-us':
+            StageManager.say(Translations.English.wr['pre'], '03')
+            StageManager.say(Translations.English.wr['fact'], '03')
             # TODO: implement other languages,
-            # TODO implement Mecha facts
+            # TODO: implement Mecha facts
 
     @staticmethod
-    def advance_stage(case_object):
-        """Advances the case's stage and does the next step"""
-        stage = case_object['stage']
-        log('advance_stage', "advancing case #{} to step {}".format(case_object['case'], stage + 1))
+    def wing_beacon(case_object):
+        if case_object['language'] == 'English-us':
+            StageManager.say(Translations.English.wb['pre'], '03')
+            StageManager.say(Translations.English.wb['fact'], '03')
+        # TODO implement other languages and implement Mecha interaction
 
+    @staticmethod
+    def fail(case_object):
+        if case_object['wing']:
+            StageManager.say(Translations.English.clear['fail']['+'].format(client=case_object['client_name']))
+        else:
+            StageManager.say(Translations.English.clear['fail']['-'].format(client=case_object['client_name']))
+
+    @staticmethod
+    def wing_conf(case_object, key):
+        formed_dict = case_object
+        formed_dict.update({'wing': True})
+        database.update({key: formed_dict})
+    @staticmethod
+    def check_o2(case_object):
+        StageManager.say("Greetings {client}, are you on emergency oxygen? (blue countdown timer top right)?".format(
+            client=case_object['client_name']))
+        pass
+    @staticmethod
+    def add_rats(key, case_object, rats):
+        """"""
+        formed_dict = case_object
+        try:
+            if len(rats) >= 1:
+                i = 0
+                for rat in rats:
+                    formed_dict.update({'rats': {i: rat}})
+                    i += 1
+
+        except Exception as e:
+            pass
+
+    @staticmethod
+    def do_stage(key, mode, alpha=None, beta=None, gamma=None):
+        """Advances the case's stage and does the next step
+        :param beta: optional extra argument, for supported functions
+        :param gamma: optional extra argument, for supported functions
+        :param alpha: Extra argument for things like platform changes, ignored when not implemented
+        :param key: Database key to use
+        :param mode: dictate which method to execute
+        :returns boolean success
+        """
+        global database
+        steps = {0: StageManager.check_o2,
+                 1: StageManager.friend_request,
+                 2: StageManager.wing_invite,
+                 3: StageManager.wing_beacon,
+                 }
+        case_object = database.get(key)
+        stage = case_object['stage']
+        if mode == 'get' or mode == 'status':
+            log('stage; [get]', 'attempting to retrieve case_object with key {} of type {}'.format(key, type(key)))
+            if case_object is not False:
+                log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=key, status=case_object['stage']))
+                return True
+
+            else:
+                log('stage', 'case_object not found.')
+                return False
+
+        elif mode == 'up':
+            steps[case_object['stage']](case_object)
+            case_object['stage'] += 1
+            case_object['has_forwarded'] = True
+            log('stage:up', 'stage set to {}'.format(case_object['stage']))
+            return True
+
+        elif mode == 'back':
+            """Steps a case back a step and issues the previous command"""
+            if case_object['has_forwarded']:
+                case_object['stage'] -= 2
+                case_object['has_forwarded'] = False
+            else:
+                case_object['stage'] -= 1
+            steps[case_object['stage']](case_object)
+            return True
+
+        elif mode == 'repeat':
+            """Repeats current stage command"""
+            steps[case_object['stage']](case_object)
+            return True
+
+        elif mode == "fr":
+            """Instructs client to add rats to friends list"""
+            steps[0](case_object)
+            return True
+
+        elif mode == "wing+":
+            StageManager.wing_conf(case_object, key)
+            log("do_stage:wing+", 'writing wing status for key {}'.format(key))
+            return True
+
+        elif mode == 'fail':
+            StageManager.fail(case_object)
+            return True
+        elif mode == 'platform':
+            log('do_stage:platform', "writing platform {} for key {}".format(alpha, key))
+            StageManager.change_platform(key, alpha, case_object)
+            return True
 
 def init():
     cmd = Commands()
@@ -383,7 +509,7 @@ def init():
             hc.hook_command(key, commands[key])
             hc.hook_server("PRIVMSG", on_message_received)
     except Exception as e:
-        log("init")
+        log("init", )
     # hc.hook_print("Channel Message",cmd.print_hook)
     # hc.hook_print("Beep",cmd.print_hook)
     # hc.hook_print("Generic message",cmd.generic_msg)
@@ -395,7 +521,8 @@ def init():
         log("Init", "Done adding hooks!")
 
 
-# ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (en-US) - IRC Nickname: Azrael_Wolfmace', '&']
+# ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
 # Now that the methods are defined, lets hook them into the slash-Commands
 # note that the slash command needs not be defined in Hexchat for this to work
-init()
+if __name__ == '__main__':  # this prevents docs from executing script code. (bad!)
+    init()
