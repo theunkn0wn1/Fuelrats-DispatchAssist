@@ -372,7 +372,8 @@ class StageManager:
     def wing_invite(case_object):
         if case_object['language'] == 'English-us':
             StageManager.say(Translations.English.wr['pre'], '03')
-            StageManager.say(Translations.English.wr['fact'], '03')
+            StageManager.say(Translations.English.wr['fact'].format(client=case_object['client_name'], platform=
+                                                                    case_object['platform']), '03')
             # TODO: implement other languages,
             # TODO: implement Mecha facts
 
@@ -380,7 +381,8 @@ class StageManager:
     def wing_beacon(case_object):
         if case_object['language'] == 'English-us':
             StageManager.say(Translations.English.wb['pre'], '03')
-            StageManager.say(Translations.English.wb['fact'], '03')
+            StageManager.say(Translations.English.wb['fact'].format(client=case_object['client_name'], platform=
+                                                                    case_object['platform']), '03')
         # TODO implement other languages and implement Mecha interaction
 
     @staticmethod
@@ -395,24 +397,30 @@ class StageManager:
         formed_dict = case_object
         formed_dict.update({'wing': True})
         database.update({key: formed_dict})
+
     @staticmethod
     def check_o2(case_object):
         StageManager.say("Greetings {client}, are you on emergency oxygen? (blue countdown timer top right)?".format(
             client=case_object['client_name']))
-        pass
+
     @staticmethod
-    def add_rats(key, case_object, rats):
-        """"""
-        formed_dict = case_object
+    def add_rats(case_object, rats):
+        """Adds up to 3 rats to a given case
+        :param case_object: case to update
+        :param rats: list of rats to add
+        """
+        # formed_dict = case_object
         try:
             if len(rats) >= 1:
                 i = 0
                 for rat in rats:
-                    formed_dict.update({'rats': {i: rat}})
+                    log("add_rats", "adding {rat} with index {i}".format(rat=rat, i=i))
+                    case_object.update({'rats': {i: rat}})
+
                     i += 1
 
         except Exception as e:
-            pass
+            log('add_rats', "an error occurred!")
 
     @staticmethod
     def do_stage(key, mode, alpha=None, beta=None, gamma=None):
@@ -436,6 +444,8 @@ class StageManager:
             log('stage; [get]', 'attempting to retrieve case_object with key {} of type {}'.format(key, type(key)))
             if case_object is not False:
                 log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=key, status=case_object['stage']))
+                log('stage', "Platform:{platform}\tRats: {rats}".format(platform=case_object['platform'],
+                                                                        rats=case_object['rats']))
                 return True
 
             else:
@@ -481,6 +491,11 @@ class StageManager:
             log('do_stage:platform', "writing platform {} for key {}".format(alpha, key))
             StageManager.change_platform(key, alpha, case_object)
             return True
+        elif mode == 'add':
+            log("do_stage:add", "adding rats {},{},{} to {}".format(alpha, beta, gamma, key))
+            StageManager.add_rats(case_object, [alpha, beta, gamma])
+            return True
+
 
 def init():
     cmd = Commands()
@@ -522,7 +537,5 @@ def init():
 
 
 # ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
-# Now that the methods are defined, lets hook them into the slash-Commands
-# note that the slash command needs not be defined in Hexchat for this to work
-if __name__ == '__main__':  # this prevents docs from executing script code. (bad!)
+if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
     init()
