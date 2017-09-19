@@ -11,6 +11,8 @@ verbose_logging = True  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
+debug_constant_C = ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
+
 hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 # Decorators
 
@@ -107,24 +109,22 @@ class Tracker:
         """Generates a new case via  !inject"""
         if list_arguments is None or len(list_arguments) < 3:
             return -1  # not enough arguments
-        elif is_capture:
-            pass
         else:
             inject_args = {'client': list_arguments[1], 'system': list_arguments[3], 'platform': list_arguments[2]}
             # order: client, platform, system
             hc.command("say !inject {} {} {}".format(inject_args['client'], inject_args['platform'], inject_args['system']))
 
-        def on_message_captured(capture):
+        def on_inject_captured(capture):
             """Parses target message events"""
-            log("on_message_captured", "parsing capture event with data: {}".format(capture))
+            log("on_inject_captured", "parsing capture event with data: {}".format(capture))
             # [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened',
             #  'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
             if capture is None:
-                log("on_message_captured", "Invalid capture event")
+                log("on_inject_captured", "Invalid capture event")
             elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
-                log("on_message_captured", " invalid capture event")
+                log("on_inject_captured", " invalid capture event")
             else:
-                log("on_message_captured", 'Beginning parse attempt')
+                log("on_inject_captured", 'Beginning parse attempt')
                 i = 0
                 # client = inject_args['client']
                 # platform = inject_args['system']
@@ -150,7 +150,7 @@ class Tracker:
                         # log("failed:", "word not read: {}".format(phrase))
                         pass
                     i += 1
-                log("on_message_captured", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
+                log("on_inject_captured", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
                 temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'English-us',
                              'client': client, 'system': 'Sol', 'stage': 0}
                 Tracker.append(temp_dict)
@@ -161,7 +161,7 @@ class Tracker:
             else:
                 log('is_capture_check', 'PASSED')
                 try:
-                    on_message_captured(capture_data)
+                    on_inject_captured(capture_data)
                 except Exception as e:
                     log("[FATAL]", "an error occured as follows:\n {error}".format(e))
         else:
@@ -411,23 +411,27 @@ class StageManager:
         """
         # formed_dict = case_object
         try:
-            if len(rats) >= 1:
-                i = 0
-                for rat in rats:
-                    log("add_rats", "adding {rat} with index {i}".format(rat=rat, i=i))
-                    case_object.update({'rats': {i: rat}})
-
-                    i += 1
+            rat_object = case_object.get('rats')
+            rat_object.update({0: rats[0]})
+            rat_object.update({1: rats[1]})
+            rat_object.update({2: rats[2]})
 
         except Exception as e:
             log('add_rats', "an error occurred!")
+            print(e)
+
+    @staticmethod
+    def go(case_object, event_args):
+        StageManager.add_rats(case_object, event_args)
+        rats = case_object.get('rats')
+        StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
 
     @staticmethod
     def do_stage(key, mode, alpha=None, beta=None, gamma=None):
         """Advances the case's stage and does the next step
         :param beta: optional extra argument, for supported functions
         :param gamma: optional extra argument, for supported functions
-        :param alpha: Extra argument for things like platform changes, ignored when not implemented
+        :param alpha: optional extra argument, for supported functions
         :param key: Database key to use
         :param mode: dictate which method to execute
         :returns boolean success
@@ -439,7 +443,6 @@ class StageManager:
                  3: StageManager.wing_beacon,
                  }
         case_object = database.get(key)
-        stage = case_object['stage']
         if mode == 'get' or mode == 'status':
             log('stage; [get]', 'attempting to retrieve case_object with key {} of type {}'.format(key, type(key)))
             if case_object is not False:
