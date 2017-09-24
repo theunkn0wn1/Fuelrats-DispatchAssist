@@ -12,6 +12,10 @@ verbose_logging = True  # if you want to see everything, it can be deafening.
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
 debug_constant_C = ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
+rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02dan8630\x02', 'potato', '-', 'System:', '\x02Praea', 'Euq', 'PI-B', 'c11\x02', '(377.53', 'LY', 'from', 'Sol)', '-', 'Platform:', '\x02PC\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '(Case', '#4)']
+ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02Rawbird\x02', '-', 'System:',
+                  '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
+                  '\x02\x0312PS4\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 
 hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
 # Decorators
@@ -110,21 +114,80 @@ class Tracker:
         if list_arguments is None or len(list_arguments) < 3:
             return -1  # not enough arguments
         else:
-            inject_args = {'client': list_arguments[1], 'system': list_arguments[3], 'platform': list_arguments[2]}
+            try:
+                prefix = list_arguments[3]
+                if prefix.lower() == ":RATSIGNAL".lower():
+                    log("inject", "ratsignal is present")
+            except Exception as e:
+                pass
+            # inject_args = {'client': list_arguments[1], 'system': list_arguments[3], 'platform': list_arguments[2]}
             # order: client, platform, system
-            hc.command("say !inject {} {} {}".format(inject_args['client'], inject_args['platform'], inject_args['system']))
+            # hc.command("say !inject {} {} {}".format(inject_args['client'], inject_args['platform'],
+            #                                          inject_args['system']))
+            pass
 
-        def on_inject_captured(capture):
-            """Parses target message events"""
-            log("on_inject_captured", "parsing capture event with data: {}".format(capture))
+        def strip_fancy(word):
+            """
+            Strips non alphanumeric values from a string
+            :param word: word to strip
+            :returns ret: sanitized string
+            """
+            ret = ""
+            for char in word:
+                if char.isalpha() or char.isnumeric():
+                    ret += char
+            return ret
+
+        def parse_ratsignal(phrase):
+            """parses ratsignal events"""
+            i = 0
+            client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
+
+            for word in phrase:
+                cleaned_word = hc.strip(word)
+                if cleaned_word == "CMDR":
+                    z = i + 2
+                    client = strip_fancy(phrase[i + 1])
+                    while phrase[z] != "-":
+                        client += "_"  # as IRC turns spaces into underscores
+                        client += strip_fancy(phrase[z])
+                        z += 1
+
+                elif cleaned_word == 'Platform:':
+                    platform = strip_fancy(phrase[i + 1])
+
+                elif cleaned_word == "Language:":
+                    lang = strip_fancy(phrase[i + 2])  # fetch the lang code
+
+                elif cleaned_word == "O2:":
+                    cr = phrase[i + 1]
+
+                elif cleaned_word == "(Case":
+                    cid = phrase[i + 1].strip("#").strip(")")
+
+                elif cleaned_word == "System:":
+                    z = i+1
+                    system = ""
+                    while phrase[z] != "-":
+                        system += " "
+                        system += strip_fancy(phrase[z])
+                        z += 1
+                i += 1
+            Tracker.append({'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
+                            'system': system, 'stage': 0})
+
+        def parse_inject(capture):
+            """Parses inject message events"""
+            log("parse_inject", "parsing capture event with data: {}".format(capture))
             # [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened',
             #  'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
             if capture is None:
-                log("on_inject_captured", "Invalid capture event")
-            elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
-                log("on_inject_captured", " invalid capture event")
+                log("parse_inject", "Invalid capture event")
+            elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com' or capture[0] != ':MechaSqueak[BOT]!sopel@bot.fuelrats.com':
+                log("parse_inject", " invalid capture event")
+                # raise ValueError ( "trigger stacktrace, this shoun't be called here...")
             else:
-                log("on_inject_captured", 'Beginning parse attempt')
+                log("parse_inject", 'Beginning parse attempt')
                 i = 0
                 # client = inject_args['client']
                 # platform = inject_args['system']
@@ -150,7 +213,7 @@ class Tracker:
                         # log("failed:", "word not read: {}".format(phrase))
                         pass
                     i += 1
-                log("on_inject_captured", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
+                log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
                 temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'English-us',
                              'client': client, 'system': 'Sol', 'stage': 0}
                 Tracker.append(temp_dict)
@@ -161,9 +224,14 @@ class Tracker:
             else:
                 log('is_capture_check', 'PASSED')
                 try:
-                    on_inject_captured(capture_data)
+                    log("is_capture", "capture_data={}".format(capture_data))
+                    if capture_data[3] == ":RATSIGNAL":
+                        print(parse_ratsignal(capture_data))
+                    else:
+                        parse_inject(capture_data)
                 except Exception as e:
-                    log("[FATAL]", "an error occured as follows:\n {error}".format(e))
+                    # log("[FATAL]", "an error occured as follows:\n {error}".format(error=e))
+                    raise e
         else:
             log("Tracker", "not capture data")
 
@@ -214,15 +282,18 @@ class Commands:
         """Runs tests and generates some dummy cases"""
         log("run_tests", "Running Tracker.inject Test 1...")
         Tracker.inject(None, True, None)
-        log("run_tests", "running test 2")
-        print(Tracker.inject([None, 'clientName', 'systemName', 'PC'], True, debug_constant_a))
+        # log("run_tests", "running test 2")
+        # print(Tracker.inject([None, 'clientName', 'systemName', 'PC'], True, debug_constant_a))
         log('run_tests', 'running test 3')
         Tracker.inject([None, None, None], True, debug_constant_B)
+
+        log('run_tests',"Running pc rsig...")
+        Tracker.inject([None, None, None], True, rsig_message)
         log("run_tests", "done!")
 
     @staticmethod
     @eat_all
-    def oxy_check( a, b, c):
+    def oxy_check(a, b, c):
         name = "oxy_check"
         log(name, "checking o2 for client:\t{cmdr}".format(cmdr=a[1]))
         hc.command("say greetings " + a[1] + ",are you on emergency o2?(blue timer top right)")
@@ -525,7 +596,7 @@ def init():
         for key in commands:
             log("init", "adding hook for\t{}".format(key))
             hc.hook_command(key, commands[key])
-            hc.hook_server("PRIVMSG", on_message_received)
+        hc.hook_server("PRIVMSG", on_message_received)
     except Exception as e:
         log("init", )
     # hc.hook_print("Channel Message",cmd.print_hook)
