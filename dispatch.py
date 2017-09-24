@@ -81,6 +81,21 @@ class Translations:
         }
 
 
+class Utilities:
+    @staticmethod
+    def strip_fancy(word):
+        """
+        Strips non alphanumeric values from a string
+        :param word: word to strip
+        :returns ret: sanitized string
+        """
+        ret = ""
+        for char in word:
+            if char.isalpha() or char.isnumeric():
+                ret += char
+        return ret
+
+
 def on_message_received(*args):
     phrase = args[0]
     channel = phrase[2]
@@ -97,6 +112,89 @@ def on_message_received(*args):
     return hc.EAT_PLUGIN
 
 
+class Parser:
+    @staticmethod
+    def parse_inject(capture):
+        """Parses inject message events"""
+        log("parse_inject", "parsing capture event with data: {}".format(capture))
+        # [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened',
+        #  'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
+        if capture is None:
+            log("parse_inject", "Invalid capture event")
+        elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com' and capture[0] != ':MechaSqueak[BOT]!sopel@bot.fuelrats.com':
+            log("parse_inject", " invalid capture event")
+        else:
+            log("parse_inject", 'Beginning parse attempt')
+            i = 0
+            # client = inject_args['client']
+            # platform = inject_args['system']
+            case = -1
+            log("step1", 'completed!')
+            for phrase in capture:
+                if phrase == 'PC)' or phrase == 'PS4)' or phrase == 'XB)':
+                    log('step2', 'searching for platform...')
+                    platform = phrase.strip(')')
+                    log('step2', 'platform is {}'.format(platform))
+                elif phrase[:5] == 'case':
+                    log('step3', 'looking for client name...')
+                    parsed_string = capture[i - 1]  # phrase before is the client name
+                    parsed_string = parsed_string[:len(parsed_string) - 2]  # strip the 's from the end
+                    parsed_string = parsed_string.strip(':')  # and the : from the start
+                    client = parsed_string  # And we have our product!
+                    log('step3', 'client is {}'.format(client))
+                elif phrase == "(Case":
+                    log('step4', 'searching for CaseID...')
+                    case = capture[i + 1].strip(',')
+                    log('step4', 'cid is {CID}'.format(CID=case))
+                else:
+                    # log("failed:", "word not read: {}".format(phrase))
+                    pass
+                i += 1
+            log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
+            temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'English-us',
+                         'client': client, 'system': 'Sol', 'stage': 0}
+            return temp_dict
+
+    @staticmethod
+    def parse_ratsignal(phrase):
+        """parses ratsignal events"""
+        i = 0
+        client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
+
+        for word in phrase:
+            cleaned_word = hc.strip(word)
+            if cleaned_word == "CMDR":
+                z = i + 2
+                client = Utilities.strip_fancy(phrase[i + 1])
+                while phrase[z] != "-":
+                    client += "_"  # as IRC turns spaces into underscores
+                    client += Utilities.strip_fancy(phrase[z])
+                    z += 1
+
+            elif cleaned_word == 'Platform:':
+                platform = Utilities.strip_fancy(phrase[i + 1])
+
+            elif cleaned_word == "Language:":
+                lang = Utilities.strip_fancy(phrase[i + 2])  # fetch the lang code
+
+            elif cleaned_word == "O2:":
+                cr = phrase[i + 1]
+
+            elif cleaned_word == "(Case":
+                cid = phrase[i + 1].strip("#").strip(")")
+
+            elif cleaned_word == "System:":
+                z = i + 1
+                system = ""
+                while phrase[z] != "-":
+                    system += " "
+                    system += Utilities.strip_fancy(phrase[z])
+                    z += 1
+            i += 1
+        return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
+                        'system': system, 'stage': 0}
+
+
 class Tracker:
     """Handles case storage and handling"""
     def __init__(self):
@@ -106,10 +204,15 @@ class Tracker:
 
     @staticmethod
     def readout(*args):
-        print("readout", database)
+        log("readout", "-- Index --| - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
+        for key in database:
+            case = database.get(key)
+            print("{index} | {platform} | {system} | {rats}".format(index=key, platform=case['platform'],
+                                                                    system=case['system'], rats=case['rats']))
+        # print("readout", database)
 
     @staticmethod
-    def inject(list_arguments, is_capture=False, capture_data=None):
+    def inject(list_arguments, from_capture=False, capture_data=None):
         """Generates a new case via  !inject"""
         if list_arguments is None or len(list_arguments) < 3:
             return -1  # not enough arguments
@@ -126,109 +229,18 @@ class Tracker:
             #                                          inject_args['system']))
             pass
 
-        def strip_fancy(word):
-            """
-            Strips non alphanumeric values from a string
-            :param word: word to strip
-            :returns ret: sanitized string
-            """
-            ret = ""
-            for char in word:
-                if char.isalpha() or char.isnumeric():
-                    ret += char
-            return ret
-
-        def parse_ratsignal(phrase):
-            """parses ratsignal events"""
-            i = 0
-            client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
-
-            for word in phrase:
-                cleaned_word = hc.strip(word)
-                if cleaned_word == "CMDR":
-                    z = i + 2
-                    client = strip_fancy(phrase[i + 1])
-                    while phrase[z] != "-":
-                        client += "_"  # as IRC turns spaces into underscores
-                        client += strip_fancy(phrase[z])
-                        z += 1
-
-                elif cleaned_word == 'Platform:':
-                    platform = strip_fancy(phrase[i + 1])
-
-                elif cleaned_word == "Language:":
-                    lang = strip_fancy(phrase[i + 2])  # fetch the lang code
-
-                elif cleaned_word == "O2:":
-                    cr = phrase[i + 1]
-
-                elif cleaned_word == "(Case":
-                    cid = phrase[i + 1].strip("#").strip(")")
-
-                elif cleaned_word == "System:":
-                    z = i+1
-                    system = ""
-                    while phrase[z] != "-":
-                        system += " "
-                        system += strip_fancy(phrase[z])
-                        z += 1
-                i += 1
-            Tracker.append({'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
-                            'system': system, 'stage': 0})
-
-        def parse_inject(capture):
-            """Parses inject message events"""
-            log("parse_inject", "parsing capture event with data: {}".format(capture))
-            # [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened',
-            #  'with:', '"sol', 'pc"', '(Case', '3,', 'PC)']
-            if capture is None:
-                log("parse_inject", "Invalid capture event")
-            elif capture[0] != ':DrillSqueak[BOT]!sopel@bot.fuelrats.com' or capture[0] != ':MechaSqueak[BOT]!sopel@bot.fuelrats.com':
-                log("parse_inject", " invalid capture event")
-                # raise ValueError ( "trigger stacktrace, this shoun't be called here...")
-            else:
-                log("parse_inject", 'Beginning parse attempt')
-                i = 0
-                # client = inject_args['client']
-                # platform = inject_args['system']
-                case = -1
-                log("step1", 'completed!')
-                for phrase in capture:
-                    if phrase == 'PC)' or phrase == 'PS4)' or phrase == 'XB)':
-                        log('step2', 'searching for platform...')
-                        platform = phrase.strip(')')
-                        log('step2', 'platform is {}'.format(platform))
-                    elif phrase[:5] == 'case':
-                        log('step3', 'looking for client name...')
-                        parsed_string = capture[i-1]  # phrase before is the client name
-                        parsed_string = parsed_string[:len(parsed_string)-2]  # strip the 's from the end
-                        parsed_string = parsed_string.strip(':')  # and the : from the start
-                        client = parsed_string  # And we have our product!
-                        log('step3', 'client is {}'.format(client))
-                    elif phrase == "(Case":
-                        log('step4', 'searching for CaseID...')
-                        case = capture_data[i+1].strip(',')
-                        log('step4', 'cid is {CID}'.format(CID=case))
-                    else:
-                        # log("failed:", "word not read: {}".format(phrase))
-                        pass
-                    i += 1
-                log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
-                temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'English-us',
-                             'client': client, 'system': 'Sol', 'stage': 0}
-                Tracker.append(temp_dict)
-
-        if is_capture:
+        if from_capture:
             if capture_data is None or capture_data == "":
                 log("Tracker", "[FAIL]\t capture_data was None or was blank")
             else:
                 log('is_capture_check', 'PASSED')
                 try:
-                    log("is_capture", "capture_data={}".format(capture_data))
+                    log("from_capture", "capture_data={}".format(capture_data))
                     if capture_data[3] == ":RATSIGNAL":
-                        print(parse_ratsignal(capture_data))
+                        log("from_capture", "parse_ratsignal returned:")
+                        Tracker.append(Parser.parse_ratsignal(capture_data))
                     else:
-                        parse_inject(capture_data)
+                        Tracker.append(Parser.parse_inject(capture_data))
                 except Exception as e:
                     # log("[FATAL]", "an error occured as follows:\n {error}".format(error=e))
                     raise e
@@ -281,13 +293,13 @@ class Commands:
     def run_tests(word, word_eol, userdata):
         """Runs tests and generates some dummy cases"""
         log("run_tests", "Running Tracker.inject Test 1...")
-        Tracker.inject(None, True, None)
+        Tracker.inject([None], True, None)
         # log("run_tests", "running test 2")
         # print(Tracker.inject([None, 'clientName', 'systemName', 'PC'], True, debug_constant_a))
         log('run_tests', 'running test 3')
         Tracker.inject([None, None, None], True, debug_constant_B)
 
-        log('run_tests',"Running pc rsig...")
+        log('run_tests', "Running pc rsig...")
         Tracker.inject([None, None, None], True, rsig_message)
         log("run_tests", "done!")
 
