@@ -204,16 +204,18 @@ class Tracker:
 
     @staticmethod
     def readout(*args):
-        log("readout", "-- Index --| - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
+        log("readout", "- Index - | - client- | - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
         for key in database:
             case = database.get(key)
-            print("{index} | {platform} | {system} | {rats}".format(index=key, platform=case['platform'],
-                                                                    system=case['system'], rats=case['rats']))
+            # print(case)
+            print("{index} | {name} | {platform} | {system} | {rats}".format(index=key, platform=case['platform'],
+                                                                             system=case['system'], rats=case['rats'],
+                                                                             name=case['client']))
         # print("readout", database)
 
     @staticmethod
     def inject(list_arguments, from_capture=False, capture_data=None):
-        """Generates a new case via  !inject"""
+        """Generates a new case via  !inject and via ratsignal text events"""
         if list_arguments is None or len(list_arguments) < 3:
             return -1  # not enough arguments
         else:
@@ -255,13 +257,13 @@ class Tracker:
 
         log('debug', "args =\t{}".format(args))
         case_id = int(args['case'])  # mecha's case id
-        client_name = args['client']  # clients IRC name
+        client = args['client']  # clients IRC name
         system = args['system']  # in-game location of client
         platform = args['platform']  # client platform
         is_cr = bool(args['cr'])  # CR status of client
         language = args['lang']  # client language
         stage = args['stage']
-        new_entry = {case_id: {'client_name': client_name, 'system': system, 'platform': platform,
+        new_entry = {case_id: {'client': client, 'system': system, 'platform': platform,
                           'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
                                'has_forwarded': False, 'rats': {
                                 0: None, 1: None, 2: None
@@ -400,8 +402,8 @@ class Commands:
         if len(x) < 1:
             log('stage', 'expected format /stage {mode} {CID}')
         else:
-            mode = x[1]
-            cid = int(x[2])
+            mode = x[2]
+            cid = int(x[1])
             try:  # if we have extra args
                 event_args[0] = x[3]
                 event_args[1] = x[4]
@@ -444,7 +446,7 @@ class StageManager:
     def friend_request(case_object):
         """Tells client to add rat(s) to friends list"""
         platform = case_object['platform']
-        client = case_object['client_name']
+        client = case_object['client']
         if case_object['language'] == 'English-us':
             StageManager.say(Translations.English.fr['pre'].format(rats="Awesome_rat_1,Awesome_rat_Potato!"))
             StageManager.say(Translations.English.fr['fact'].format(client=client, platform=platform))
@@ -455,7 +457,7 @@ class StageManager:
     def wing_invite(case_object):
         if case_object['language'] == 'English-us':
             StageManager.say(Translations.English.wr['pre'], '03')
-            StageManager.say(Translations.English.wr['fact'].format(client=case_object['client_name'], platform=
+            StageManager.say(Translations.English.wr['fact'].format(client=case_object['client'], platform=
                                                                     case_object['platform']), '03')
             # TODO: implement other languages,
             # TODO: implement Mecha facts
@@ -464,16 +466,16 @@ class StageManager:
     def wing_beacon(case_object):
         if case_object['language'] == 'English-us':
             StageManager.say(Translations.English.wb['pre'], '03')
-            StageManager.say(Translations.English.wb['fact'].format(client=case_object['client_name'], platform=
+            StageManager.say(Translations.English.wb['fact'].format(client=case_object['client'], platform=
                                                                     case_object['platform']), '03')
         # TODO implement other languages and implement Mecha interaction
 
     @staticmethod
     def fail(case_object):
         if case_object['wing']:
-            StageManager.say(Translations.English.clear['fail']['+'].format(client=case_object['client_name']))
+            StageManager.say(Translations.English.clear['fail']['+'].format(client=case_object['client']))
         else:
-            StageManager.say(Translations.English.clear['fail']['-'].format(client=case_object['client_name']))
+            StageManager.say(Translations.English.clear['fail']['-'].format(client=case_object['client']))
 
     @staticmethod
     def wing_conf(case_object, key):
@@ -484,7 +486,7 @@ class StageManager:
     @staticmethod
     def check_o2(case_object):
         StageManager.say("Greetings {client}, are you on emergency oxygen? (blue countdown timer top right)?".format(
-            client=case_object['client_name']))
+            client=case_object['client']))
 
     @staticmethod
     def add_rats(case_object, rats):
