@@ -1,6 +1,7 @@
 from functools import wraps  # so decorators don't swallow docstrings
 
 import hexchat as hc
+from tabulate import tabulate  # for outputting pretty tables
 
 # Globals
 __module_name__ = "dispatch"
@@ -17,8 +18,9 @@ ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuel
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 
-hc.prnt("=============\ncustom module dispatch.py loaded!\n* Author:theunkn0wn1\n===========")
+hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
 # Decorators
+
 
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
@@ -45,9 +47,12 @@ def required_args(num, is_strict=False):
     return decorator
 
 
-def log(trace, msg, verbose=True):
-
-    print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
+def log(trace, msg, verbose=False):
+    global verbose_logging
+    if verbose_logging:
+        print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
+    elif verbose:
+        print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
 
 
 class Translations:
@@ -203,14 +208,21 @@ class Tracker:
         database = {}
 
     @staticmethod
+    @eat_all
     def readout(*args):
-        log("readout", "- Index - | - client- | - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
+        headers = ["#", "Client", "Platform", "cr", "system", "Assigned rats"]
+        data = []
+        # print("readout\t",database)
+        # log("readout", "- Index - | - client- | - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
         for key in database:
             case = database.get(key)
-            # print(case)
-            print("{index} | {name} | {platform} | {system} | {rats}".format(index=key, platform=case['platform'],
-                                                                             system=case['system'], rats=case['rats'],
-                                                                             name=case['client']))
+            client = case['client']
+            system = case['system']
+            platform = case['platform']
+            code_red = case['cr']
+            rats = case['rats']
+            data.append([key, client, platform, code_red, system, rats])
+        log("readout",tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
 
     @staticmethod
@@ -397,10 +409,10 @@ class Commands:
 
     @staticmethod
     @eat_all
-    def stage( x, y, z):
+    def stage(x, y, z):
         event_args = [None]*3
         if len(x) < 1:
-            log('stage', 'expected format /stage {mode} {CID}')
+            log('stage', 'expected format /stage {index} {mode} {param}')
         else:
             mode = x[2]
             cid = int(x[1])
@@ -408,9 +420,13 @@ class Commands:
                 event_args[0] = x[3]
                 event_args[1] = x[4]
                 event_args[2] = x[5]
-            except IndexError:
-                pass  # if not we get an error we can suppress
-
+                log("\0034stage\003", "event_args={}".format(event_args))
+            except IndexError:  # but less than 3
+                try:
+                    event_args[0] = x[3]
+                    event_args[1] = x[4]
+                except IndexError:  # only one extra argument
+                    event_args[0] = x[3]
             if StageManager.do_stage(cid, mode, event_args[0], event_args[1], event_args[2]):
                 pass
             else:
@@ -440,17 +456,20 @@ class StageManager:
             formed_dict = case_object
             formed_dict['platform'] = platform
             database.update({key:formed_dict})
-            log('change_platform', "Successfully updated platform for case {}".format(key))
+            log('change_platform', "Successfully updated platform for case {}".format(key),True)
 
     @staticmethod
     def friend_request(case_object):
         """Tells client to add rat(s) to friends list"""
         platform = case_object['platform']
         client = case_object['client']
-        if case_object['language'] == 'English-us':
-            StageManager.say(Translations.English.fr['pre'].format(rats="Awesome_rat_1,Awesome_rat_Potato!"))
+        if case_object['language'].lower() == 'enus':
+            # StageManager.say(Translations.English.fr['pre'].format(rats=case_object['rats']))  # TODO make work
+            log("friend_request", "triggered!", True)
+            StageManager.go(case_object, None)
             StageManager.say(Translations.English.fr['fact'].format(client=client, platform=platform))
-        log("friend_request", "Client {client} is on platform {platform}".format(client=client, platform=platform))
+        log("friend_request", "Client {client} is on platform {platform} with lang {lang}"
+            .format(client=client, platform=platform, lang=case_object['language']), True)
         # TODO: implement other languages, add option to outsource facts to Mecha
 
     @staticmethod
@@ -497,21 +516,40 @@ class StageManager:
         # formed_dict = case_object
         try:
             rat_object = case_object.get('rats')
+            log("\0034add_rats\003", "rats = {}".format(rats))
             rat_object.update({0: rats[0]})
             rat_object.update({1: rats[1]})
             rat_object.update({2: rats[2]})
-
+            print(rat_object)
+            log("add_rats", "rats added", True)
         except Exception as e:
-            log('add_rats', "an error occurred!")
+            log('add_rats', "an error occurred!", True)
             print(e)
 
     @staticmethod
     def go(case_object, event_args):
-        StageManager.add_rats(case_object, event_args)
+        if event_args is not None:
+            StageManager.add_rats(case_object, event_args)
         rats = case_object.get('rats')
-        StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
+        quantity_none = 0
+        for rat in rats:
+            if rat is None:
+                quantity_none += 1
+        if quantity_none == 0:
+            print("someshite\t is zero")
+            StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
+        elif quantity_none == 1:
+            StageManager.say(
+                "Please add {alpha},{beta} to your friends list.".format(alpha=rats[0], beta=rats[1]))
+        elif quantity_none == 2:
+            StageManager.say(
+                "Please add {alpha} to your friends list.".format(alpha=rats[0]))
+            StageManager.say(
+                "!{platform}fr".format(platform=case_object['platform'])
+            )
 
     @staticmethod
+    @eat_all
     def do_stage(key, mode, alpha=None, beta=None, gamma=None):
         """Advances the case's stage and does the next step
         :param beta: optional extra argument, for supported functions
@@ -531,20 +569,20 @@ class StageManager:
         if mode == 'get' or mode == 'status':
             log('stage; [get]', 'attempting to retrieve case_object with key {} of type {}'.format(key, type(key)))
             if case_object is not False:
-                log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=key, status=case_object['stage']))
+                log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=key, status=case_object['stage']), True)
                 log('stage', "Platform:{platform}\tRats: {rats}".format(platform=case_object['platform'],
-                                                                        rats=case_object['rats']))
+                                                                        rats=case_object['rats']), True)
                 return True
 
             else:
-                log('stage', 'case_object not found.')
+                log('stage', 'case_object not found.',True)
                 return False
 
         elif mode == 'up':
             steps[case_object['stage']](case_object)
             case_object['stage'] += 1
             case_object['has_forwarded'] = True
-            log('stage:up', 'stage set to {}'.format(case_object['stage']))
+            log('stage:up', 'stage set to {}'.format(case_object['stage']), True)
             return True
 
         elif mode == 'back':
@@ -552,6 +590,7 @@ class StageManager:
             if case_object['has_forwarded']:
                 case_object['stage'] -= 2
                 case_object['has_forwarded'] = False
+                # log('Stage:back', "Backing up..", True)
             else:
                 case_object['stage'] -= 1
             steps[case_object['stage']](case_object)
@@ -569,7 +608,7 @@ class StageManager:
 
         elif mode == "wing+":
             StageManager.wing_conf(case_object, key)
-            log("do_stage:wing+", 'writing wing status for key {}'.format(key))
+            log("do_stage:wing+", 'writing wing status for key {}'.format(key), True)
             return True
 
         elif mode == 'fail':
@@ -611,17 +650,12 @@ def init():
             log("init", "adding hook for\t{}".format(key))
             hc.hook_command(key, commands[key])
         hc.hook_server("PRIVMSG", on_message_received)
+
     except Exception as e:
-        log("init", )
-    # hc.hook_print("Channel Message",cmd.print_hook)
-    # hc.hook_print("Beep",cmd.print_hook)
-    # hc.hook_print("Generic message",cmd.generic_msg)
-    # hc.hook_server("PRIVMSG",cmd.server_hook)#debug_constant_a = MyClass() #hooks when the user is mentioned
-    except Exception as e:
-        log("Init", "Failure adding hooks! error reads as follows:")
-        log("Init", e)
+        log("Init", "\0034Failure adding hooks! error reads as follows:", True)
+        log("Init", e, True)
     else:
-        log("Init", "Done adding hooks!")
+        log("Init", "\0033 Everything is prepared. Ready.", True)
 
 
 # ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
