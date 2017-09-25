@@ -16,7 +16,7 @@ debug_constant_C = ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - Sy
 rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02dan8630\x02', 'potato', '-', 'System:', '\x02Praea', 'Euq', 'PI-B', 'c11\x02', '(377.53', 'LY', 'from', 'Sol)', '-', 'Platform:', '\x02PC\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '(Case', '#4)']
 ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02Rawbird\x02', '-', 'System:',
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
-                  '\x02\x0312PS4\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
+                  '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 
 hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
 # Decorators
@@ -109,6 +109,13 @@ def on_message_received(*args):
         if sender == ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
             log("on_message_received", "sender is correct, attempting parse...")
             Tracker.inject([None, None, None], True, phrase)
+        elif sender == ":MechaSqueak[BOT]!sopel@bot.fuelrats.com":
+            log("on_message_received", phrase)
+            if phrase[3] == ':RATSIGNAL':
+                log("on_message_received", "Rsig received.")
+                output = Parser.parse_ratsignal(phrase)
+                log("on_message_received", "capture data is {}".format(output))
+                Tracker.append(output)
         else:
             pass
             # log("on_message_received", 'not the expected user')
@@ -178,13 +185,19 @@ class Parser:
 
             elif cleaned_word == 'Platform:':
                 platform = Utilities.strip_fancy(phrase[i + 1])
+                if platform == "12PS4":
+                    platform = platform[2:]  # strip the colour code
 
             elif cleaned_word == "Language:":
                 lang = Utilities.strip_fancy(phrase[i + 2])  # fetch the lang code
 
             elif cleaned_word == "O2:":
+                log("parser:parse_ratsignal", "o2 is {}".format(phrase[i+1]))
                 cr = phrase[i + 1]
-
+                if cr == 'OK':
+                    cr = False
+                else:
+                    cr = True
             elif cleaned_word == "(Case":
                 cid = phrase[i + 1].strip("#").strip(")")
 
@@ -192,9 +205,13 @@ class Parser:
                 z = i + 1
                 system = ""
                 while phrase[z] != "-":
-                    system += " "
-                    system += Utilities.strip_fancy(phrase[z])
-                    z += 1
+                    if "(" in phrase[z] or "not" in phrase[z]:  # checks if we have reached the distance from part of the system
+                        break  # and discard, since it is not part of the actual system name
+                    else:
+                        system += " "
+                        system += Utilities.strip_fancy(phrase[z])
+                        z += 1
+                # system.find()
             i += 1
         return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
                         'system': system, 'stage': 0}
@@ -229,7 +246,7 @@ class Tracker:
     def inject(list_arguments, from_capture=False, capture_data=None):
         """Generates a new case via  !inject and via ratsignal text events"""
         if list_arguments is None or len(list_arguments) < 3:
-            return -1  # not enough arguments
+            pass  # not enough arguments
         else:
             try:
                 prefix = list_arguments[3]
@@ -276,7 +293,7 @@ class Tracker:
         language = args['lang']  # client language
         stage = args['stage']
         new_entry = {case_id: {'client': client, 'system': system, 'platform': platform,
-                          'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
+                               'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
                                'has_forwarded': False, 'rats': {
                                 0: None, 1: None, 2: None
                                 }}}
@@ -291,10 +308,13 @@ class Tracker:
         try:
             if database.pop(cid, None) is None:
                 log("rm", "Failed to remove {cid}, no such case {cid}.".format(cid=cid))
+                return False
             else:
                 log("rm", "successfully removed case {}".format(cid))
+                return False
         except Exception:
             log("rm", "unable to remove case {}. An unknown error occurred.")
+            return False
 
 
 class Commands:
@@ -311,10 +331,18 @@ class Commands:
         # log("run_tests", "running test 2")
         # print(Tracker.inject([None, 'clientName', 'systemName', 'PC'], True, debug_constant_a))
         log('run_tests', 'running test 3')
+
         Tracker.inject([None, None, None], True, debug_constant_B)
+        assert not Tracker.rm([None, 9], None, None)  # if we can't remove the case - it didn't get formed as expected
 
         log('run_tests', "Running pc rsig...")
         Tracker.inject([None, None, None], True, rsig_message)
+
+        assert not Tracker.rm([None, 4], None, None)
+
+        log("run_tests", 'Running pc rsig via on_message_reveived...')
+        on_message_received(rsig_message, None, None)
+        on_message_received(ps_risg_message)
         log("run_tests", "done!")
 
     @staticmethod
