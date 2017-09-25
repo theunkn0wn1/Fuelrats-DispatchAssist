@@ -536,7 +536,6 @@ class StageManager:
             if rat is None:
                 quantity_none += 1
         if quantity_none == 0:
-            print("someshite\t is zero")
             StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
         elif quantity_none == 1:
             StageManager.say(
