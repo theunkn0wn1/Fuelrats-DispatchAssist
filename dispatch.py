@@ -8,7 +8,7 @@ __module_name__ = "dispatch"
 __module_version__ = "0.0.1"
 __module_description__ = "Assist with automating trivial FuelRat dispatch interactions"
 database = {}
-verbose_logging = True  # if you want to see everything, it can be deafening.
+verbose_logging = False  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
@@ -17,6 +17,7 @@ rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrat
 ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02Rawbird\x02', '-', 'System:',
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
+xb_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02XX', 'SAM', 'JR', 'XX\x02', '-', 'System:', '\x02CRUCIS', 'SECTOR', 'BQ-P', 'A5-1\x02', '(24.01', 'LY', 'from', 'Fuelum)', '-', 'Platform:', '\x02\x0303XB\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '-']
 
 hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
 # Decorators
@@ -25,8 +26,8 @@ hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Aut
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
     @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
-    def wrapper(*args):
-        wrapped_function(args[0], args[1], args[2])
+    def wrapper(arg,*args, **kwargs):  # todo: learn why this doesn't munch arguments
+        wrapped_function(arg, args, kwargs)
         return hc.EAT_ALL
     return wrapper
 
@@ -88,15 +89,18 @@ class Translations:
 
 class Utilities:
     @staticmethod
-    def strip_fancy(word):
+    def strip_fancy(word, allowed_fancy=None):
         """
         Strips non alphanumeric values from a string
         :param word: word to strip
+        :param allowed_fancy: non-alpha numeric characters to preserve
         :returns ret: sanitized string
         """
         ret = ""
         for char in word:
             if char.isalpha() or char.isnumeric():
+                ret += char
+            elif allowed_fancy is not None and char in allowed_fancy:
                 ret += char
         return ret
 
@@ -239,7 +243,7 @@ class Tracker:
             code_red = case['cr']
             rats = case['rats']
             data.append([key, client, platform, code_red, system, rats])
-        log("readout",tabulate(data, headers, "grid", missingval="<ERROR>"), True)
+        log("readout", tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
 
     @staticmethod
@@ -302,18 +306,19 @@ class Tracker:
         return 1
 
     @staticmethod
+    @eat_all
     def rm(word, word_eol, user_data):
-        cid = int(word[1])
-        log("rm", "removing case with CID {}...".format(cid))
+        log("rm", "removing case with CID {}...".format(word[1]))
         try:
+            cid = int(word[1])
             if database.pop(cid, None) is None:
-                log("rm", "Failed to remove {cid}, no such case {cid}.".format(cid=cid))
+                log("rm", "Failed to remove {cid}, no such case {cid}.".format(cid=cid), True)
                 return False
             else:
-                log("rm", "successfully removed case {}".format(cid))
+                log("rm", "successfully removed case {}".format(cid), True)
                 return False
         except Exception:
-            log("rm", "unable to remove case {}. An unknown error occurred.")
+            log("rm", "unable to remove case {}. An unknown error occurred.".format(cid))
             return False
 
 
@@ -321,6 +326,13 @@ class Commands:
     """contains the Commands invoked via slash hooked during init"""
     def __init__(self):
         translate = Translations()
+
+    @staticmethod
+    @eat_all
+    def debug(*args):
+        global verbose_logging
+        verbose_logging = not verbose_logging
+        log("debug", "Toggling verbose logging to {}".format(verbose_logging), True)
 
     @staticmethod
     @eat_all
@@ -333,16 +345,17 @@ class Commands:
         log('run_tests', 'running test 3')
 
         Tracker.inject([None, None, None], True, debug_constant_B)
-        assert not Tracker.rm([None, 9], None, None)  # if we can't remove the case - it didn't get formed as expected
+        # assert not Tracker.rm([None, 9], None, None)  # if we can't remove the case - it didn't get formed as expected
 
         log('run_tests', "Running pc rsig...")
         Tracker.inject([None, None, None], True, rsig_message)
+        # assert not Tracker.rm([None, 4], None, None)
 
-        assert not Tracker.rm([None, 4], None, None)
-
-        log("run_tests", 'Running pc rsig via on_message_reveived...')
+        log("run_tests", 'Running pc rsig via on_message_received...')
         on_message_received(rsig_message, None, None)
         on_message_received(ps_risg_message)
+        log("run_tests", "running xb rsig via on_message_received")
+        on_message_received(xb_rsig_message)
         log("run_tests", "done!")
 
     @staticmethod
@@ -438,6 +451,7 @@ class Commands:
     @staticmethod
     @eat_all
     def stage(x, y, z):
+        # todo make invalid argument count not break things
         event_args = [None]*3
         if len(x) < 1:
             log('stage', 'expected format /stage {index} {mode} {param}')
@@ -451,11 +465,19 @@ class Commands:
                 log("\0034stage\003", "event_args={}".format(event_args))
             except IndexError:  # but less than 3
                 try:
+                    log("stage", "two extra arguments")
                     event_args[0] = x[3]
                     event_args[1] = x[4]
                 except IndexError:  # only one extra argument
-                    event_args[0] = x[3]
-            if StageManager.do_stage(cid, mode, event_args[0], event_args[1], event_args[2]):
+                    try:
+                        log("stage", "only one extra argument?")
+                        event_args[0] = x[3]
+                    except Exception as e:
+                        log("stage", "\0034Well something went very wrong.")
+                        print(e)  # TODO  investigate a crash in here
+            print("=======================")
+            print(event_args)
+            if StageManager.do_stage(cid, mode, alpha=event_args[0], beta=event_args[1], gamma=event_args[2]):
                 pass
             else:
                 log("stage", 'unknown mode {}'.format(mode))
@@ -541,7 +563,7 @@ class StageManager:
         :param case_object: case to update
         :param rats: list of rats to add
         """
-        # formed_dict = case_object
+        # TODO make multiple rats actually work
         try:
             rat_object = case_object.get('rats')
             log("\0034add_rats\003", "rats = {}".format(rats))
@@ -586,6 +608,7 @@ class StageManager:
         :param mode: dictate which method to execute
         :returns boolean success
         """
+        log("do_stage", "\0034 vars are {} {} {}".format(alpha, beta, gamma))
         global database
         steps = {0: StageManager.check_o2,
                  1: StageManager.friend_request,
@@ -669,8 +692,9 @@ def init():
         # "new": board.append,  # yeah no, this needs to be put into a wrapper (expects dict, gets string array)
         "del": board.rm,
         'rm': board.rm,
-        "readout": board.readout
-
+        'md': board.rm,
+        "readout": board.readout,
+        "verbose": cmd.debug
     }
     try:
         for key in commands:
