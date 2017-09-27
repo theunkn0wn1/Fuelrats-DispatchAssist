@@ -51,9 +51,9 @@ def required_args(num, is_strict=False):
 def log(trace, msg, verbose=False):
     global verbose_logging
     if verbose_logging:
-        print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
+        print("[{Stack}:{trace}]\t{message}".format(Stack=__module_name__, message=msg, trace=trace))
     elif verbose:
-        print("[{Stack}:{trace}]\t {message}".format(Stack=__module_name__, message=msg, trace=trace))
+        print("[{Stack}:{trace}]\t{message}".format(Stack=__module_name__, message=msg, trace=trace))
 
 
 class Translations:
@@ -213,7 +213,7 @@ class Parser:
                         break  # and discard, since it is not part of the actual system name
                     else:
                         system += " "
-                        system += Utilities.strip_fancy(phrase[z])
+                        system += Utilities.strip_fancy(phrase[z], allowed_fancy="-")
                         z += 1
                 # system.find()
             i += 1
@@ -669,7 +669,7 @@ class StageManager:
             StageManager.change_platform(key, alpha, case_object)
             return True
         elif mode == 'add':
-            log("do_stage:add", "adding rats {},{},{} to {}".format(alpha, beta, gamma, key))
+            log("do_stage:add", "adding rats {},{},{} to {}".format(alpha, beta, gamma, key))  # TODO make work with kwargs
             StageManager.add_rats(case_object, [alpha, beta, gamma])
             return True
 
