@@ -1,4 +1,5 @@
 from functools import wraps  # so decorators don't swallow docstrings
+from sys import version as py_version
 
 import hexchat as hc
 from tabulate import tabulate  # for outputting pretty tables
@@ -18,7 +19,7 @@ ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuel
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 xb_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02XX', 'SAM', 'JR', 'XX\x02', '-', 'System:', '\x02CRUCIS', 'SECTOR', 'BQ-P', 'A5-1\x02', '(24.01', 'LY', 'from', 'Fuelum)', '-', 'Platform:', '\x02\x0303XB\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '-']
-
+is_3_6 = True if py_version[2] == '6' else False
 hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
 # Decorators
 
@@ -86,6 +87,23 @@ class Translations:
 
         }
 
+        
+class Case:
+    """
+    case object
+    """
+    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None,stage=0, language=None):
+        self.client = client
+        self.index = index
+        self.platform = platform
+        self.cr = cr
+        self.rats = rats
+        self.stage = stage
+        self.language = language
+        self.wing = False
+        self.has_forwarded = False
+        self.system = system
+
 
 class Utilities:
     @staticmethod
@@ -103,7 +121,6 @@ class Utilities:
             elif allowed_fancy is not None and char in allowed_fancy:
                 ret += char
         return ret
-
 
 def on_message_received(*args):
     phrase = args[0]
@@ -166,14 +183,14 @@ class Parser:
                     # log("failed:", "word not read: {}".format(phrase))
                     pass
                 i += 1
-            log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
-            temp_dict = {'case': case, 'platform': platform, 'cr': False, 'lang': 'English-us',
-                         'client': client, 'system': 'Sol', 'stage': 0}
-            return temp_dict
+            # log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
+            return Case(client, case, platform=platform)
 
     @staticmethod
     def parse_ratsignal(phrase):
-        """parses ratsignal events"""
+        """
+        parses ratsignal events
+        """
         i = 0
         client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
 
@@ -217,8 +234,12 @@ class Parser:
                         z += 1
                 # system.find()
             i += 1
-        return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
-                        'system': system, 'stage': 0}
+        if cid is None:
+            cid = -1  # error handling, so the case can still be deleted
+        # return Case(client, cid, cr, platform, stage=0)
+        return Case(client=client, index=cid, cr=cr, platform=platform, system=system,language=lang)
+        # return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
+        #                 'system': system, 'stage': 0}
 
 
 class Tracker:
@@ -237,11 +258,12 @@ class Tracker:
         # log("readout", "- Index - | - client- | - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
         for key in database:
             case = database.get(key)
-            client = case['client']
-            system = case['system']
-            platform = case['platform']
-            code_red = case['cr']
-            rats = case['rats']
+            # case: Case
+            client = case.client
+            system = case.system
+            platform = case.platform
+            code_red = case.cr
+            rats = case.rats
             data.append([key, client, platform, code_red, system, rats])
         log("readout", tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
@@ -277,7 +299,7 @@ class Tracker:
                     else:
                         Tracker.append(Parser.parse_inject(capture_data))
                 except Exception as e:
-                    # log("[FATAL]", "an error occured as follows:\n {error}".format(error=e))
+                    log("[FATAL]", "an error occured as follows:\n {error}".format(error=e))
                     raise e
         else:
             log("Tracker", "not capture data")
@@ -289,18 +311,20 @@ class Tracker:
         """
 
         log('debug', "args =\t{}".format(args))
-        case_id = int(args['case'])  # mecha's case id
-        client = args['client']  # clients IRC name
-        system = args['system']  # in-game location of client
-        platform = args['platform']  # client platform
-        is_cr = bool(args['cr'])  # CR status of client
-        language = args['lang']  # client language
-        stage = args['stage']
-        new_entry = {case_id: {'client': client, 'system': system, 'platform': platform,
-                               'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
-                               'has_forwarded': False, 'rats': {
-                                0: None, 1: None, 2: None
-                                }}}
+        # case_id = int(args['case'])  # mecha's case id
+        # client = args['client']  # clients IRC name
+        # system = args['system']  # in-game location of client
+        # platform = args['platform']  # client platform
+        # is_cr = bool(args['cr'])  # CR status of client
+        # language = args['lang']  # client language
+        # stage = args['stage']
+        # new_entry = {case_id: {'client': client, 'system': system, 'platform': platform,
+        #                        'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
+        #                        'has_forwarded': False, 'rats': {
+        #                         0: None, 1: None, 2: None
+        #                         }}}
+        new_entry = {int(args.index): args}
+        print("new entry is {}".format(new_entry))
         database.update(new_entry)
         log("append", "new entry created...")
         return 1
@@ -313,8 +337,10 @@ class Tracker:
             cid = int(word[1])
             if database.pop(cid, None) is None:
                 log("rm", "Failed to remove {cid}, no such case {cid}.".format(cid=cid), True)
+                log("rm", "raw dict is{}".format(database))
                 return False
             else:
+                # print(database)
                 log("rm", "successfully removed case {}".format(cid), True)
                 return False
         except Exception:
@@ -324,8 +350,6 @@ class Tracker:
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
-    def __init__(self):
-        translate = Translations()
 
     @staticmethod
     @eat_all
@@ -453,8 +477,11 @@ class Commands:
     def stage(x, y, z):
         # todo make invalid argument count not break things
         event_args = [None]*3
+        print("len(X) = {}".format(len(x)))
         if len(x) < 1:
             log('stage', 'expected format /stage {index} {mode} {param}')
+        elif len(x) == 3: # no extra arguments
+            pass
         else:
             mode = x[2]
             cid = int(x[1])
@@ -472,11 +499,11 @@ class Commands:
                     try:
                         log("stage", "only one extra argument?")
                         event_args[0] = x[3]
-                    except Exception as e:
-                        log("stage", "\0034Well something went very wrong.")
-                        print(e)  # TODO  investigate a crash in here
-            print("=======================")
-            print(event_args)
+                    except Exception as e:  # erm.. well this was not planned for
+                        log("stage", "\0034Well something went very wrong.", True)
+                        log("stage", e, True)  # TODO  investigate a crash in here
+            log("stage", "=======================")
+            log("stage event_args=", event_args)
             if StageManager.do_stage(cid, mode, alpha=event_args[0], beta=event_args[1], gamma=event_args[2]):
                 pass
             else:
@@ -503,59 +530,62 @@ class StageManager:
         """
         global database
         if platform == 'ps' or platform == 'pc' or platform == 'xb':
-            formed_dict = case_object
-            formed_dict['platform'] = platform
-            database.update({key:formed_dict})
+            # formed_dict: Case  # technicially this isn't used, but will need to be removed before executing!
+
+            formed_dict = case_object  # since hex forces usage of 3.5 rather than 3.6...
+            formed_dict.platform = platform
             log('change_platform', "Successfully updated platform for case {}".format(key),True)
 
     @staticmethod
     def friend_request(case_object):
         """Tells client to add rat(s) to friends list"""
-        platform = case_object['platform']
-        client = case_object['client']
-        if case_object['language'].lower() == 'enus':
+        # case_object: Case  # todo remove this line
+        platform = case_object.platform
+        client = case_object.client
+        if case_object.language.lower() == 'enus':
             # StageManager.say(Translations.English.fr['pre'].format(rats=case_object['rats']))  # TODO make work
             log("friend_request", "triggered!", True)
             StageManager.go(case_object, None)
             StageManager.say(Translations.English.fr['fact'].format(client=client, platform=platform))
         log("friend_request", "Client {client} is on platform {platform} with lang {lang}"
-            .format(client=client, platform=platform, lang=case_object['language']), True)
+            .format(client=client, platform=platform, lang=case_object.language), True)
         # TODO: implement other languages, add option to outsource facts to Mecha
 
     @staticmethod
     def wing_invite(case_object):
+        # case_object: Case  # todo rm this line
         if case_object['language'] == 'English-us':
             StageManager.say(Translations.English.wr['pre'], '03')
-            StageManager.say(Translations.English.wr['fact'].format(client=case_object['client'], platform=
-                                                                    case_object['platform']), '03')
+            StageManager.say(Translations.English.wr['fact'].format(client=case_object.client, platform=
+                                                                    case_object.platform), '03')
             # TODO: implement other languages,
             # TODO: implement Mecha facts
 
     @staticmethod
     def wing_beacon(case_object):
         if case_object['language'] == 'English-us':
+            # case_object: Case  # todo rm this line
             StageManager.say(Translations.English.wb['pre'], '03')
-            StageManager.say(Translations.English.wb['fact'].format(client=case_object['client'], platform=
-                                                                    case_object['platform']), '03')
+            StageManager.say(Translations.English.wb['fact'].format(client=case_object.client, platform=
+                                                                    case_object.platform), '03')
         # TODO implement other languages and implement Mecha interaction
 
     @staticmethod
     def fail(case_object):
+        # case_object: Case  # todo rm this line
         if case_object['wing']:
-            StageManager.say(Translations.English.clear['fail']['+'].format(client=case_object['client']))
+            StageManager.say(Translations.English.clear['fail']['+'].format(client=case_object.client))
         else:
-            StageManager.say(Translations.English.clear['fail']['-'].format(client=case_object['client']))
+            StageManager.say(Translations.English.clear['fail']['-'].format(client=case_object.client))
 
     @staticmethod
     def wing_conf(case_object, key):
-        formed_dict = case_object
-        formed_dict.update({'wing': True})
-        database.update({key: formed_dict})
+        case_object.wing = True
 
     @staticmethod
     def check_o2(case_object):
         StageManager.say("Greetings {client}, are you on emergency oxygen? (blue countdown timer top right)?".format(
-            client=case_object['client']))
+            client=case_object.client))
 
     @staticmethod
     def add_rats(case_object, rats):
@@ -565,12 +595,11 @@ class StageManager:
         """
         # TODO make multiple rats actually work
         try:
-            rat_object = case_object.get('rats')
             log("\0034add_rats\003", "rats = {}".format(rats))
-            rat_object.update({0: rats[0]})
-            rat_object.update({1: rats[1]})
-            rat_object.update({2: rats[2]})
-            print(rat_object)
+            case_object.rats.update({0: rats[0]})
+            case_object.rats.update({1: rats[1]})
+            case_object.rats.update({2: rats[2]})
+            print(case_object.rats)
             log("add_rats", "rats added", True)
         except Exception as e:
             log('add_rats', "an error occurred!", True)
@@ -580,7 +609,7 @@ class StageManager:
     def go(case_object, event_args):
         if event_args is not None:
             StageManager.add_rats(case_object, event_args)
-        rats = case_object.get('rats')
+        rats = case_object.rats if case_object.rats is not None else []  # prevent index errors (hopefully)...
         quantity_none = 0
         for rat in rats:
             if rat is None:
@@ -615,40 +644,41 @@ class StageManager:
                  2: StageManager.wing_invite,
                  3: StageManager.wing_beacon,
                  }
-        case_object = database.get(key)
+        # case_object: Case # todo comment line out (unrecoverable syntax error because hexchat)
+        try:
+            case_object = database.get(int(key))
+        except Exception as e:
+            log("stage", "unable to retrieve case with key {}".format(key))
+            return False
+
         if mode == 'get' or mode == 'status':
             log('stage; [get]', 'attempting to retrieve case_object with key {} of type {}'.format(key, type(key)))
-            if case_object is not False:
-                log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=key, status=case_object['stage']), True)
-                log('stage', "Platform:{platform}\tRats: {rats}".format(platform=case_object['platform'],
-                                                                        rats=case_object['rats']), True)
-                return True
 
-            else:
-                log('stage', 'case_object not found.',True)
-                return False
+            log('stage', 'status of {CID} is:\nStage: {status}'.format(CID=int(key), status=case_object.stage), True)
+            log('stage', "Platform:{platform}\tRats: {rats}".format(platform=case_object.platform,rats=case_object.rats))
+            return True
 
         elif mode == 'up':
-            steps[case_object['stage']](case_object)
-            case_object['stage'] += 1
-            case_object['has_forwarded'] = True
-            log('stage:up', 'stage set to {}'.format(case_object['stage']), True)
+            steps[case_object.stage](case_object)
+            case_object.stage += 1
+            case_object.has_forwarded = True
+            log('stage:up', 'stage set to {}'.format(case_object.stage), True)
             return True
 
         elif mode == 'back':
             """Steps a case back a step and issues the previous command"""
-            if case_object['has_forwarded']:
-                case_object['stage'] -= 2
-                case_object['has_forwarded'] = False
+            if case_object.has_forwarded:
+                case_object.stage -= 2
+                case_object.has_forwarded = False
                 # log('Stage:back', "Backing up..", True)
             else:
                 case_object['stage'] -= 1
-            steps[case_object['stage']](case_object)
+            steps[case_object.stage](case_object)
             return True
 
         elif mode == 'repeat':
             """Repeats current stage command"""
-            steps[case_object['stage']](case_object)
+            steps[case_object.stage](case_object)
             return True
 
         elif mode == "fr":
