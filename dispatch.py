@@ -90,7 +90,7 @@ class Translations:
         
 class Case:
     """
-    case object
+    Stores a case
     """
     def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None,stage=0, language=None):
         self.client = client
@@ -121,6 +121,7 @@ class Utilities:
             elif allowed_fancy is not None and char in allowed_fancy:
                 ret += char
         return ret
+
 
 def on_message_received(*args):
     phrase = args[0]
@@ -206,7 +207,7 @@ class Parser:
 
             elif cleaned_word == 'Platform:':
                 platform = Utilities.strip_fancy(phrase[i + 1])
-                if platform == "12PS4":
+                if platform == "12PS4" or platform == "03XB":
                     platform = platform[2:]  # strip the colour code
 
             elif cleaned_word == "Language:":
@@ -310,21 +311,9 @@ class Tracker:
         expected: None,id,client,system,platform,cr,language
         """
 
-        log('debug', "args =\t{}".format(args))
-        # case_id = int(args['case'])  # mecha's case id
-        # client = args['client']  # clients IRC name
-        # system = args['system']  # in-game location of client
-        # platform = args['platform']  # client platform
-        # is_cr = bool(args['cr'])  # CR status of client
-        # language = args['lang']  # client language
-        # stage = args['stage']
-        # new_entry = {case_id: {'client': client, 'system': system, 'platform': platform,
-        #                        'cr': is_cr, 'language': language, 'stage': stage, 'wing': False,
-        #                        'has_forwarded': False, 'rats': {
-        #                         0: None, 1: None, 2: None
-        #                         }}}
+        log('toggle_verbose', "args =\t{}".format(args))
         new_entry = {int(args.index): args}
-        print("new entry is {}".format(new_entry))
+        log("append", "new entry is {}".format(new_entry))
         database.update(new_entry)
         log("append", "new entry created...")
         return 1
@@ -343,8 +332,9 @@ class Tracker:
                 # print(database)
                 log("rm", "successfully removed case {}".format(cid), True)
                 return False
-        except Exception:
-            log("rm", "unable to remove case {}. An unknown error occurred.".format(cid))
+        except Exception as e:
+            log("rm", "unable to remove case {}. An unknown error occurred.".format(cid), True)
+            log("rm", "Exception is: {}".format(e))
             return False
 
 
@@ -353,10 +343,10 @@ class Commands:
 
     @staticmethod
     @eat_all
-    def debug(*args):
+    def toggle_verbose(*args):
         global verbose_logging
         verbose_logging = not verbose_logging
-        log("debug", "Toggling verbose logging to {}".format(verbose_logging), True)
+        log("toggle_verbose", "Toggling verbose logging to {}".format(verbose_logging), True)
 
     @staticmethod
     @eat_all
@@ -724,7 +714,7 @@ def init():
         'rm': board.rm,
         'md': board.rm,
         "readout": board.readout,
-        "verbose": cmd.debug
+        "verbose": cmd.toggle_verbose
     }
     try:
         for key in commands:
