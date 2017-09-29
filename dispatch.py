@@ -149,6 +149,9 @@ def on_message_received(*args):
 
 
 class Parser:
+    """
+    Contains methods to parse incoming data. use .parse()
+    """
     @staticmethod
     def parse_inject(capture):
         """Parses inject message events"""
@@ -244,6 +247,43 @@ class Parser:
         # return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
         #                 'system': system, 'stage': 0}
 
+    @staticmethod
+    def parse_clear(**kwargs):
+        # [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':Case', 'Slate_gorgon', 'got', 'cleared!']
+        data = kwargs['data']
+        # is_valid = False
+        client = None
+        if data is not None or "":
+            i = 0
+            for word in data:
+                if word == ":Case":
+                    log("parse_clear", "found client name")
+                    client = data[i+1]
+                    log("parse_clear", "client is {}".format(client))
+                elif word == "got" and data[i+1] == "cleared!":
+                    # is_valid = True
+                    pass  # todo validity checking?
+            i += 1
+            return client
+
+    @staticmethod
+    def parse(**kwargs):
+        """Attempts to parse incoming data,
+        :returns bool or Case object
+        """
+        # [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':tonyg940:', 'To', 'add', 'th
+        data = kwargs['data']
+        event_type = data[3]  # What kind of input
+        if event_type == ":RATSIGNAL":
+            return Parser.parse_ratsignal(data)
+        elif event_type == ":Case":
+            return Parser.parse_clear(data=data)
+        elif event_type[-2:] == "'s":  # injected cases open with "{client}'s"
+            return Parser.parse_inject(data)
+        else:
+            log("Parser.parse", "Unknown phrase.")
+            return None
+
 
 class Tracker:
     """Handles case storage and handling"""
@@ -319,11 +359,15 @@ class Tracker:
 
         log('toggle_verbose', "args =\t{}".format(kwargs))
         data = kwargs['data']
-        new_entry = {int(data.index): data}
-        log("append", "new entry is {}".format(new_entry))
-        database.update(new_entry)
-        log("append", "new entry created...")
-        return 1
+        if isinstance(data, Case):  # Sanity check. Writing a non-class object would be... less than ideal
+            new_entry = {int(data.index): data}
+            log("append", "new entry is {}".format(new_entry))
+            database.update(new_entry)
+            log("append", "new entry created...")
+            return 1
+        else:
+            log("append", "data is NOT of type Case!")
+            return 0
 
     @staticmethod
     @eat_all
@@ -491,6 +535,7 @@ class Commands:
             pass
         else:
             mode = x[2]
+            log("stage", "mode = {} and is of type {}".format(mode, type(mode)))
             cid = int(x[1])
             try:  # if we have extra args
                 event_args[0] = x[3]
@@ -645,7 +690,8 @@ class StageManager:
         :returns boolean success
         """
         log("do_stage", "\0034 vars are {} {} {}".format(alpha, beta, gamma))
-        log("do_stage", "mode is \"{}\"".format(mode))
+        log("do_stage", "mode is of type {} with data".format(type(mode)))
+        print(mode)
         global database
         steps = {0: StageManager.check_o2,
                  1: StageManager.friend_request,
