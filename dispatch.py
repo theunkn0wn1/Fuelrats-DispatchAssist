@@ -92,7 +92,8 @@ class Case:
     """
     Stores a case
     """
-    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None,stage=0, language=None):
+    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None,stage=0, language=None,
+                 raw=None):
         self.client = client
         self.index = index
         self.platform = platform
@@ -103,6 +104,7 @@ class Case:
         self.wing = False
         self.has_forwarded = False
         self.system = system
+        self.raw = raw  # debug symbol
 
 
 class Utilities:
@@ -164,6 +166,7 @@ class Parser:
             # platform = inject_args['system']
             case = -1
             log("step1", 'completed!')
+            client = platform = None  # init before use
             for phrase in capture:
                 if phrase == 'PC)' or phrase == 'PS4)' or phrase == 'XB)':
                     log('step2', 'searching for platform...')
@@ -194,7 +197,6 @@ class Parser:
         """
         i = 0
         client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
-
         for word in phrase:
             cleaned_word = hc.strip(word)
             if cleaned_word == "CMDR":
@@ -238,7 +240,7 @@ class Parser:
         if cid is None:
             cid = -1  # error handling, so the case can still be deleted
         # return Case(client, cid, cr, platform, stage=0)
-        return Case(client=client, index=cid, cr=cr, platform=platform, system=system,language=lang)
+        return Case(client=client, index=cid, cr=cr, platform=platform, system=system, language=lang, raw=phrase)
         # return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
         #                 'system': system, 'stage': 0}
 
@@ -260,14 +262,18 @@ class Tracker:
         for key in database:
             case = database.get(key)
             # case: Case
-            client = case.client
-            system = case.system
-            platform = case.platform
-            code_red = case.cr
-            rats = case.rats
-            data.append([key, client, platform, code_red, system, rats])
+
+            data.append([key, case.client, case.platform, case.cr, case.system, case.rats])
         log("readout", tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
+
+    @staticmethod
+    @eat_all
+    def debug_print(*args):
+        global database
+        for key in database:
+            data = database.get(key)
+            log("debug_print", "{key}:{data}".format(key=key, data=data.raw))
 
     @staticmethod
     def inject(list_arguments, from_capture=False, capture_data=None):
@@ -296,9 +302,9 @@ class Tracker:
                     log("from_capture", "capture_data={}".format(capture_data))
                     if capture_data[3] == ":RATSIGNAL":
                         log("from_capture", "parse_ratsignal returned:")
-                        Tracker.append(Parser.parse_ratsignal(capture_data))
+                        Tracker.append(data=Parser.parse_ratsignal(capture_data))
                     else:
-                        Tracker.append(Parser.parse_inject(capture_data))
+                        Tracker.append(data=Parser.parse_inject(capture_data))
                 except Exception as e:
                     log("[FATAL]", "an error occured as follows:\n {error}".format(error=e))
                     raise e
@@ -306,13 +312,14 @@ class Tracker:
             log("Tracker", "not capture data")
 
     @staticmethod
-    def append(args):
+    def append(**kwargs):
         """Appends a new entry to the db
         expected: None,id,client,system,platform,cr,language
         """
 
-        log('toggle_verbose', "args =\t{}".format(args))
-        new_entry = {int(args.index): args}
+        log('toggle_verbose', "args =\t{}".format(kwargs))
+        data = kwargs['data']
+        new_entry = {int(data.index): data}
         log("append", "new entry is {}".format(new_entry))
         database.update(new_entry)
         log("append", "new entry created...")
@@ -461,6 +468,16 @@ class Commands:
     @eat_all
     def generic_msg(x, y, z):
         log("generic_msg", x)
+
+    @staticmethod
+    @eat_all
+    def change_index(word, word_eol, event_args):
+        key = word[1]
+        log("change_index", " key is {}".format(key))
+        new_key = word[2]
+        case = database.pop(int(key))
+        case.index = int(new_key)
+        Tracker.append(data=case, index=new_key)
 
     @staticmethod
     @eat_all
@@ -713,8 +730,10 @@ def init():
         "del": board.rm,
         'rm': board.rm,
         'md': board.rm,
-        "readout": board.readout,
-        "verbose": cmd.toggle_verbose
+        "board": board.readout,
+        "verbose": cmd.toggle_verbose,
+        "readraw": Tracker.debug_print,
+        "mv": cmd.change_index
     }
     try:
         for key in commands:
