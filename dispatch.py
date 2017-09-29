@@ -135,11 +135,15 @@ def on_message_received(*args):
             Tracker.inject([None, None, None], True, phrase)
         elif sender == ":MechaSqueak[BOT]!sopel@bot.fuelrats.com":
             log("on_message_received", phrase)
-            if phrase[3] == ':RATSIGNAL':
-                log("on_message_received", "Rsig received.")
-                output = Parser.parse_ratsignal(phrase)
-                log("on_message_received", "capture data is {}".format(output))
-                Tracker.append(data=output)
+            parsed_data = Parser.parse(data=phrase)
+            if parsed_data is not None:
+                log("on_message_received", "parsed data is {}".format(parsed_data))
+                Tracker.append(data=parsed_data)
+            # if phrase[3] == ':RATSIGNAL':
+            #     log("on_message_received", "Rsig received.")
+            #     output = Parser.parse_ratsignal(phrase)
+            #     log("on_message_received", "capture data is {}".format(output))
+            #     Tracker.append(data=output)
         else:
             pass
             # log("on_message_received", 'not the expected user')
