@@ -139,12 +139,12 @@ def on_message_received(*args):
                 log("on_message_received", "Rsig received.")
                 output = Parser.parse_ratsignal(phrase)
                 log("on_message_received", "capture data is {}".format(output))
-                Tracker.append(output)
+                Tracker.append(data=output)
         else:
             pass
             # log("on_message_received", 'not the expected user')
     except Exception as e:
-        log("on_message_received", 'some error occurred! Error is as follows:]\n{}'.format(e))
+        log("on_message_received", 'some error occurred! Error is as follows:\n{}'.format(e))
     return hc.EAT_PLUGIN
 
 
@@ -586,7 +586,7 @@ class StageManager:
             StageManager.say(Translations.English.clear['fail']['-'].format(client=case_object.client))
 
     @staticmethod
-    def wing_conf(case_object, key):
+    def wing_conf(case_object):
         case_object.wing = True
 
     @staticmethod
@@ -645,6 +645,7 @@ class StageManager:
         :returns boolean success
         """
         log("do_stage", "\0034 vars are {} {} {}".format(alpha, beta, gamma))
+        log("do_stage", "mode is \"{}\"".format(mode))
         global database
         steps = {0: StageManager.check_o2,
                  1: StageManager.friend_request,
@@ -694,7 +695,7 @@ class StageManager:
             return True
 
         elif mode == "wing+":
-            StageManager.wing_conf(case_object, key)
+            StageManager.wing_conf(case_object)
             log("do_stage:wing+", 'writing wing status for key {}'.format(key), True)
             return True
 
