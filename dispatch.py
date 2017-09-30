@@ -105,8 +105,21 @@ class Case:
         self.system = system
         self.raw = raw  # debug symbol
 
+    def __contains__(self, item):
+        if item == self.client:
+            return True
+        elif item == self.index:
+            return True
+        elif item in self.rats:
+            return True
+
 
 class Utilities:
+    @staticmethod
+    def play_beep():
+        """PLay a sound"""
+        pass
+
     @staticmethod
     def strip_fancy(word, allowed_fancy=None):
         """
@@ -136,7 +149,7 @@ def on_message_received(*args):
             if parsed_data is not None:
                 log("on_message_received", "parsed data is {}".format(parsed_data))
                 if isinstance(parsed_data, Case):
-                    return Tracker.append(data=parsed_data)
+                    Tracker.append(data=parsed_data)
                 elif isinstance(parsed_data, str):
                     log("on_message_received", "case clear message\ndata is {}".format(parsed_data))
                     for key in database:
@@ -145,9 +158,9 @@ def on_message_received(*args):
                         if entry.client == parsed_data:
                             log("on_message_received", "found a matching case!")
                             database.pop(key)
-                            return True
+                            # return True
                         log("on_message_received", "no matching client.")
-                        return False
+                        # return False
             # if phrase[3] == ':RATSIGNAL':
             #     log("on_message_received", "Rsig received.")
             #     output = Parser.parse_ratsignal(phrase)
@@ -158,7 +171,7 @@ def on_message_received(*args):
             # log("on_message_received", 'not the expected user')
     except Exception as e:
         log("on_message_received", 'some error occurred! Error is as follows:\n{}'.format(e))
-    return hc.EAT_PLUGIN
+    # return hc.EAT_PLUGIN
 
 
 class Parser:
@@ -277,6 +290,18 @@ class Parser:
                     is_valid = True
                 i += 1
             return client if is_valid else None
+
+    @staticmethod
+    def parse_cr(**kwargs):
+        i = 0
+        client = None
+        #  [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ':CODE', 'RED!', 'rowdy0452', 'is', 'on', 'emergency', 'oxygen.']
+        data = kwargs['data']
+        for word in data:
+            if Utilities.strip_fancy(word).lower() == 'code' and Utilities.strip_fancy(data[i+1]).lower() == "red":
+                client = data[i+2]
+            i += 1
+        return client
 
     @staticmethod
     def parse(**kwargs):
