@@ -1,5 +1,4 @@
 from functools import wraps  # so decorators don't swallow docstrings
-from sys import version as py_version
 
 import hexchat as hc
 from tabulate import tabulate  # for outputting pretty tables
@@ -19,7 +18,7 @@ ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuel
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 xb_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02XX', 'SAM', 'JR', 'XX\x02', '-', 'System:', '\x02CRUCIS', 'SECTOR', 'BQ-P', 'A5-1\x02', '(24.01', 'LY', 'from', 'Fuelum)', '-', 'Platform:', '\x02\x0303XB\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '-']
-is_3_6 = True if py_version[2] == '6' else False
+clear_msg = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':Case', 'Potato', 'FrozenDemon', 'got', 'cleared!']
 hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
 # Decorators
 
@@ -130,15 +129,25 @@ def on_message_received(*args):
     channel = phrase[2]
     sender = phrase[0]
     try:
-        if sender == ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
-            log("on_message_received", "sender is correct, attempting parse...")
-            Tracker.inject([None, None, None], True, phrase)
-        elif sender == ":MechaSqueak[BOT]!sopel@bot.fuelrats.com":
+
+        if sender == ":MechaSqueak[BOT]!sopel@bot.fuelrats.com" or sender == ':DrillSqueak[BOT]!sopel@bot.fuelrats.com':
             log("on_message_received", phrase)
             parsed_data = Parser.parse(data=phrase)
             if parsed_data is not None:
                 log("on_message_received", "parsed data is {}".format(parsed_data))
-                Tracker.append(data=parsed_data)
+                if isinstance(parsed_data, Case):
+                    return Tracker.append(data=parsed_data)
+                elif isinstance(parsed_data, str):
+                    log("on_message_received", "case clear message\ndata is {}".format(parsed_data))
+                    for key in database:
+                        entry = database.get(key)
+                        # entry:Case
+                        if entry.client == parsed_data:
+                            log("on_message_received", "found a matching case!")
+                            database.pop(key)
+                            return True
+                        log("on_message_received", "no matching client.")
+                        return False
             # if phrase[3] == ':RATSIGNAL':
             #     log("on_message_received", "Rsig received.")
             #     output = Parser.parse_ratsignal(phrase)
@@ -255,7 +264,7 @@ class Parser:
     def parse_clear(**kwargs):
         # [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':Case', 'Slate_gorgon', 'got', 'cleared!']
         data = kwargs['data']
-        # is_valid = False
+        is_valid = False
         client = None
         if data is not None or "":
             i = 0
@@ -265,10 +274,9 @@ class Parser:
                     client = data[i+1]
                     log("parse_clear", "client is {}".format(client))
                 elif word == "got" and data[i+1] == "cleared!":
-                    # is_valid = True
-                    pass  # todo validity checking?
-            i += 1
-            return client
+                    is_valid = True
+                i += 1
+            return client if is_valid else None
 
     @staticmethod
     def parse(**kwargs):
@@ -280,9 +288,10 @@ class Parser:
         event_type = data[3]  # What kind of input
         if event_type == ":RATSIGNAL":
             return Parser.parse_ratsignal(data)
-        elif event_type == ":Case":
+        elif Utilities.strip_fancy(event_type).lower() == "case":
             return Parser.parse_clear(data=data)
         elif event_type[-2:] == "'s":  # injected cases open with "{client}'s"
+            log("Parse.part", "event type = {}".format(event_type))
             return Parser.parse_inject(data)
         else:
             log("Parser.parse", "Unknown phrase.")
@@ -425,6 +434,9 @@ class Commands:
         on_message_received(ps_risg_message)
         log("run_tests", "running xb rsig via on_message_received")
         on_message_received(xb_rsig_message)
+        log("run_tests", "testing clear...")
+        on_message_received(clear_msg)
+
         log("run_tests", "done!")
 
     @staticmethod
@@ -783,7 +795,7 @@ def init():
         'md': board.rm,
         "board": board.readout,
         "verbose": cmd.toggle_verbose,
-        "readraw": Tracker.debug_print,
+        "raw_board": Tracker.debug_print,
         "mv": cmd.change_index
     }
     try:
