@@ -1,6 +1,11 @@
 from functools import wraps  # so decorators don't swallow docstrings
 
-import hexchat as hc
+try:
+    import hexchat as hc
+except ImportError:
+    hc = None
+    print("[WARN]: Hexchat module NOT found!")
+
 from tabulate import tabulate  # for outputting pretty tables
 
 # Globals
@@ -19,7 +24,10 @@ ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuel
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 xb_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02XX', 'SAM', 'JR', 'XX\x02', '-', 'System:', '\x02CRUCIS', 'SECTOR', 'BQ-P', 'A5-1\x02', '(24.01', 'LY', 'from', 'Fuelum)', '-', 'Platform:', '\x02\x0303XB\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '-']
 clear_msg = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':Case', 'Potato', 'FrozenDemon', 'got', 'cleared!']
-hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
+if hc is not None:
+    print("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
+else:
+    print("dispatch.py loading\n author: Theunkn0wn1")
 # Decorators
 
 
@@ -867,16 +875,21 @@ def init():
         "mv": cmd.change_index
     }
     try:
-        for key in commands:
-            log("init", "adding hook for\t{}".format(key))
-            hc.hook_command(key, commands[key])
-        hc.hook_server("PRIVMSG", on_message_received)
-
+        if hc is not None:
+            for key in commands:
+                log("init", "adding hook for\t{}".format(key))
+                hc.hook_command(key, commands[key])
+            hc.hook_server("PRIVMSG", on_message_received)
+        else:
+            log("init:hexchat", "hexchat module is not loaded, skipping hex init...")
     except Exception as e:
         log("Init", "\0034Failure adding hooks! error reads as follows:", True)
         log("Init", e, True)
     else:
-        log("Init", "\0033 Everything is prepared. Ready.", True)
+        if hc is not None:
+            log("Init", "\0033 loading completed.", True)
+        else:
+            log("Init", "loading completed.")
 
 
 # ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
