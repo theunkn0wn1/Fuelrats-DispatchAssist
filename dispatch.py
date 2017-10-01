@@ -459,6 +459,11 @@ class Commands:
 
     @staticmethod
     @eat_all
+    def client_name():
+        pass
+
+    @staticmethod
+    @eat_all
     def system(word, word_eol, userdata):
         case = word[1]
         log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
