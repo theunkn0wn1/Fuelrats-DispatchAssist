@@ -28,9 +28,3 @@ Example:
 
 This will delete case #2 from the board and stop tracking it.
 
-# Todo
-1. Add links in Requirements section
-2. Organize Usage section
-2a. Add some more cases
-3. Add "First time launch" section
-4. Desribe source of data. Are you pluged in some API? MechaSqueak?
