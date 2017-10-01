@@ -106,7 +106,9 @@ class Case:
         self.raw = raw  # debug symbol
 
     def __contains__(self, item):
-        if item == self.client:
+        if item is None:
+            return False
+        elif item == self.client:
             return True
         elif item == self.index:
             return True
@@ -158,6 +160,7 @@ def on_message_received(*args):
                         if entry.client == parsed_data:
                             log("on_message_received", "found a matching case!")
                             database.pop(key)
+                            break
                             # return True
                         log("on_message_received", "no matching client.")
                         # return False
@@ -301,7 +304,9 @@ class Parser:
             if Utilities.strip_fancy(word).lower() == 'code' and Utilities.strip_fancy(data[i+1]).lower() == "red":
                 client = data[i+2]
             i += 1
-        return client
+        case = Tracker.get_case(value=client)
+        case.cr = True
+        return case
 
     @staticmethod
     def parse(**kwargs):
@@ -318,6 +323,8 @@ class Parser:
         elif event_type[-2:] == "'s":  # injected cases open with "{client}'s"
             log("Parse.part", "event type = {}".format(event_type))
             return Parser.parse_inject(data)
+        elif Utilities.strip_fancy(event_type).lower() == "code":
+            return Parser.parse_cr(data=data)
         else:
             log("Parser.parse", "Unknown phrase.")
             return None
@@ -425,6 +432,16 @@ class Tracker:
             log("rm", "unable to remove case {}. An unknown error occurred.".format(cid), True)
             log("rm", "Exception is: {}".format(e))
             return False
+
+    @staticmethod
+    def get_case(**kwargs):
+        value = kwargs['value']
+        for key in database:
+            obj = database.get(key)
+            # obj: Case
+            if value in obj:
+                return obj
+        return None
 
 
 class Commands:
