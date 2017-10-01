@@ -443,9 +443,27 @@ class Tracker:
                 return obj
         return None
 
+    @staticmethod
+    def change_system(**kwargs):
+        i = kwargs['case']
+        system = kwargs['system']
+        case = database.get(int(i))
+        # case: Case
+        case.system = system
+        log("change_system", "case c{id} {client} was updated to {system}".format(id=case.index,client=case.client,
+                                                                                  system=case.system))
+
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
+
+    @staticmethod
+    @eat_all
+    def system(word, word_eol, userdata):
+        case = word[1]
+        log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
+        system = word_eol[0][2]  # assuming anything after the case number is part of the system...
+        Tracker.change_system(case=case, system=system)
 
     @staticmethod
     @eat_all
@@ -560,6 +578,8 @@ class Commands:
     @eat_all
     def print_hook(x, y, z):
         log("print_hook", hc.strip(x[1]))
+        print(x)
+        print(y)
 
     @staticmethod
     @eat_all
@@ -821,7 +841,8 @@ def init():
     board = Tracker()
     log("Init", "Adding hooks!")
     commands = {
-        # 'potato': cmd.temp,
+        'sys': cmd.system,
+        'potato': cmd.print_hook,
         'test': cmd.run_tests,
         'o2': cmd.oxy_check,
         "test2": cmd.print_test,
