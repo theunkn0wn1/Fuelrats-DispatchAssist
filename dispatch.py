@@ -113,6 +113,28 @@ class Case:
         self.system = system
         self.raw = raw  # debug symbol
 
+    def system(self, system):
+        """
+        Changes the Case's current system
+        :param system:str new system
+        """
+        if type(system) is str:
+            self.system = system
+        else:
+            raise TypeError("system must be of type str")
+
+    def rats(self, rats):
+        if type(rats) is str:
+            i = 0
+            for entry in self.rats:  # single rat assignment
+                if entry is None:
+                    self.rats[i] = rats
+                i += 1
+        elif type(rats) is list:
+            self.rats = rats
+        else:
+            raise TypeError("rats must be type str or list")
+
     def __contains__(self, item):
         if item is None:
             return False
