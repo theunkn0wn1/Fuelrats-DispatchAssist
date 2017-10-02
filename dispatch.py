@@ -18,7 +18,7 @@ verbose_logging = False  # if you want to see everything, it can be deafening.
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
 debug_constant_C = ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
-rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02dan8630\x02', 'potato', '-', 'System:', '\x02Praea', 'Euq', 'PI-B', 'c11\x02', '(377.53', 'LY', 'from', 'Sol)', '-', 'Platform:', '\x02PC\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '(Case', '#4)']
+pc_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02dan8630\x02', 'potato', '-', 'System:', '\x02Praea', 'Euq', 'PI-B', 'c11\x02', '(377.53', 'LY', 'from', 'Sol)', '-', 'Platform:', '\x02PC\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '(Case', '#4)']
 ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02Rawbird\x02', '-', 'System:',
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
@@ -135,14 +135,19 @@ class Case:
         else:
             raise TypeError("rats must be type str or list")
 
+    def toggle_cr(self):
+        self.cr = not self.cr
+
     def __contains__(self, item):
-        if item is None:
+        if item is None or not isinstance(item,str):
             return False
         elif item == self.client:
             return True
         elif item == self.index:
             return True
-        elif item in self.rats:
+        elif item.lower() in self.platform.lower():
+            return True
+        elif self.rats is not None and item in self.rats:
             return True
 
 
@@ -245,12 +250,14 @@ class Parser:
                     log('step4', 'searching for CaseID...')
                     case = capture[i + 1].strip(',')
                     log('step4', 'cid is {CID}'.format(CID=case))
+                elif phrase.lower() == "with:":
+                    system = capture[i + 1].strip('"')
                 else:
                     # log("failed:", "word not read: {}".format(phrase))
                     pass
                 i += 1
             # log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
-            return Case(client, case, platform=platform)
+            return Case(client, case, platform=platform, system=system)
 
     @staticmethod
     def parse_ratsignal(phrase):
@@ -335,7 +342,8 @@ class Parser:
                 client = data[i+2]
             i += 1
         case = Tracker.get_case(value=client)
-        case.cr = True
+        # case: Case
+        case.toggle_cr()
         return case
 
     @staticmethod
@@ -521,11 +529,11 @@ class Commands:
         # assert not Tracker.rm([None, 9], None, None)  # if we can't remove the case - it didn't get formed as expected
 
         log('run_tests', "Running pc rsig...")
-        Tracker.inject([None, None, None], True, rsig_message)
+        Tracker.inject([None, None, None], True, pc_rsig_message)
         # assert not Tracker.rm([None, 4], None, None)
 
         log("run_tests", 'Running pc rsig via on_message_received...')
-        on_message_received(rsig_message, None, None)
+        on_message_received(pc_rsig_message, None, None)
         on_message_received(ps_risg_message)
         log("run_tests", "running xb rsig via on_message_received")
         on_message_received(xb_rsig_message)
