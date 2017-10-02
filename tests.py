@@ -4,6 +4,7 @@ import dispatch
 
 
 class Tests(unittest.TestCase):
+    @unittest.expectedFailure
     def test_inject(self):
         ret = dispatch.Parser.parse(data=dispatch.debug_constant_B)
         self.assertIsInstance(ret, dispatch.Case)

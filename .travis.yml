@@ -1,5 +1,4 @@
 language: python
-rvm:
   - 3.5
 install:
   - pip install tabulate
