@@ -1,6 +1,8 @@
 language: python
-  - 3.5
+  - "3.5"
 install:
   - pip install tabulate
+cache: pip
+
 script:
-  - tests.py
+  - python tests.py
