@@ -260,7 +260,7 @@ class Parser:
         i = 0
         client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
         for word in phrase:
-            cleaned_word = hc.strip(word)
+            cleaned_word = word
             if cleaned_word == "CMDR":
                 z = i + 2
                 client = Utilities.strip_fancy(phrase[i + 1])
