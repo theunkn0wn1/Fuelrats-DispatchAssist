@@ -113,7 +113,7 @@ class Case:
         self.system = system
         self.raw = raw  # debug symbol
 
-    def system(self, system):
+    def System(self, system):
         """
         Changes the Case's current system
         :param system:str new system
@@ -123,7 +123,7 @@ class Case:
         else:
             raise TypeError("system must be of type str")
 
-    def rats(self, rats):
+    def Rats(self, rats):
         if type(rats) is str:
             i = 0
             for entry in self.rats:  # single rat assignment
@@ -138,9 +138,15 @@ class Case:
     def toggle_cr(self):
         self.cr = not self.cr
 
+    def Platform(self, data):
+        if isinstance(data, str):
+            self.platform = data
+        else:
+            raise TypeError("data expected to be type str")
+
     def __contains__(self, item):
-        if item is None or not isinstance(item,str):
-            return False
+        if item is None or not isinstance(item, str):
+            raise TypeError("got {} expected str".format(type(item)))
         elif item == self.client:
             return True
         elif item == self.index:
@@ -149,6 +155,9 @@ class Case:
             return True
         elif self.rats is not None and item in self.rats:
             return True
+        else:
+            log("case.__contains__", "value is {} of type {}".format(item, type(item)))
+            return 42
 
 
 class Utilities:
@@ -447,10 +456,10 @@ class Tracker:
             log("append", "new entry is {}".format(new_entry))
             database.update(new_entry)
             log("append", "new entry created...")
-            return 1
+            return True
         else:
             log("append", "data is NOT of type Case!")
-            return 0
+            return False
 
     @staticmethod
     @eat_all
@@ -477,9 +486,12 @@ class Tracker:
         for key in database:
             obj = database.get(key)
             # obj: Case
+            log("get_case", "value in obj = {}\n{obj}".format(value in obj, obj=obj), True)
             if value in obj:
+                # print("value is {} of type {}".format(value, type(value)))
                 return obj
-        return None
+        # return None
+        raise ValueError()
 
     @staticmethod
     def change_system(**kwargs):

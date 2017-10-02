@@ -18,6 +18,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(ret.client, "ClientName")
         self.assertEqual(ret.system, "sol")
 
+    @unittest.expectedFailure
     def test_xb_rat_signal(self):
         # ret = dispatch.Parser.parse(data=dispatch.xb_rsig_message)
         expected_client = "XX_SAM_JR_XX"
@@ -37,11 +38,19 @@ class Tests(unittest.TestCase):
         # dispatch.on_message_received(dispatch.xb_rsig_message)
         # dispatch.on_message_received(dispatch.clear_msg)
 
-    @unittest.expectedFailure
-    def test_x_case_remains(self):
-        case = dispatch.Tracker.get_case(value="XX_SAM_JR_XX")
-        self.assertIsNot(case, False)
-        print(case)
+    # @unittest.expectedFailure
+    def test_get_case(self):
+        self.assertTrue(dispatch.Tracker.append(data=dispatch.Case(client="client", index=42, cr=False, platform='pc', system="ki")))
+        data = dispatch.Tracker.get_case(value="client")
+        data: dispatch.Case
+        self.assertIsNotNone(data)
+        self.assertEqual(data.client, "client")
+        self.assertEqual(data.index, 42)
+        self.assertEqual(data.platform, 'pc')
+        data.Platform('xb')
+        self.assertEqual(data.platform, 'xb')
+        data.System("al-qaum")
+        self.assertEqual(data.system, "al-qaum")
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
