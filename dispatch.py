@@ -113,6 +113,16 @@ class Case:
         self.system = system
         self.raw = raw  # debug symbol
 
+    def Client(self, client):
+        """
+        Updates client name
+        :param client: new name
+        """
+        if isinstance(client, str):
+            self.client = client
+        else:
+            raise TypeError("client must be of type str")
+
     def System(self, system):
         """
         Changes the Case's current system
@@ -135,7 +145,7 @@ class Case:
         else:
             raise TypeError("rats must be type str or list")
 
-    def toggle_cr(self):
+    def Cr(self):
         self.cr = not self.cr
 
     def Platform(self, data):
@@ -505,18 +515,53 @@ class Tracker:
         system = kwargs['system']
         case = database.get(int(i))
         # case: Case
-        case.system = system
+        case.System(system)
         log("change_system", "case c{id} {client} was updated to {system}".format(id=case.index,client=case.client,
                                                                                   system=case.system))
+
+    @staticmethod
+    def change_platform(**kwargs):
+        i = kwargs['case']
+        platform = kwargs['platform']
+        case = database.get(int(i))
+        # case: Case
+        case.Platform(platform)
+        log("change_platform", "changed #{id} to platform {plat}".format(id=i, plat=platform), True)
+
+    @staticmethod
+    def toggle_cr(**kwargs):
+        case = database.get(kwargs['case'])
+        # case:Case
+        case.toggle_cr()
+        log("Cr", "toggling code red status for case #{id}".format(id=kwargs['case']))
 
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
+    @staticmethod
+    @eat_all
+    def code_red(word, word_eol, userdata):
+        index = int(word[1])
+        case = database.get(index)
+        if case is None:
+            log("code_red", "case at index position {} does not exist.".format(index), True)
+        else:
+            # case: Case
+            log("code_red", "case #{index} [{client}]'s CR status has been updated".format(index=index,
+                                                                                           client=case.client), True)
+            case.Cr()
 
     @staticmethod
     @eat_all
-    def client_name():
-        pass
+    def client(word, word_eol, userdata):
+        try:
+            index = int(word[1])
+            case = Tracker.get_case(value=index)
+            # case : Case
+            case.Client(word_eol[0][2])
+
+        except ValueError:
+            log("client_name", "\0034 ERROR: {} is not a number!".format(word[1]), True)
 
     @staticmethod
     @eat_all
@@ -920,7 +965,10 @@ def init():
         "board": board.readout,
         "verbose": cmd.toggle_verbose,
         "raw_board": Tracker.debug_print,
-        "mv": cmd.change_index
+        "mv": cmd.change_index,
+        "client": cmd.client,
+        "sys": cmd.system,
+        "cr": cmd.code_red
     }
     try:
         if hc is not None:

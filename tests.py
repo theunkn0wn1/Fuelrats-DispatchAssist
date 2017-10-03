@@ -5,7 +5,16 @@ import dispatch
 
 class Tests(unittest.TestCase):
     # NOTE: tests methods must begin with test_, otherwise
-    # @unittest.expectedFailure
+
+    def setUp(self):
+        """
+        shared vars
+        :return:
+        """
+        dispatch.Tracker.append(data=dispatch.Case(index=42, client="client", platform='pc', cr=False, system="AL-quam"))
+
+    def tearDown(self):
+        dispatch.database.pop(42)
 
     def test_inject_a(self):
         ret = dispatch.Parser.parse(data=dispatch.debug_constant_B)
@@ -20,13 +29,13 @@ class Tests(unittest.TestCase):
         self.assertEqual(ret.system, "sol")
 
     # @unittest.expectedFailure
-    def test_a_xb_rat_signal(self):
+    def test_xb_rat_signal(self):
         # ret = dispatch.Parser.parse(data=dispatch.xb_rsig_message)
         expected_client = "XX_SAM_JR_XX"
         db = dispatch.database
         dispatch.on_message_received(dispatch.xb_rsig_message)
         ret = dispatch.Tracker.get_case(value=expected_client)
-        self.assertEqual(len(dispatch.database),1)
+        self.assertEqual(len(dispatch.database), 2)
         self.assertIsInstance(ret, dispatch.Case)
         self.assertEqual(ret.platform.lower(), 'xb')
         self.assertEqual(ret.client, expected_client)
@@ -63,6 +72,19 @@ class Tests(unittest.TestCase):
         self.assertIsNotNone(data)
         data.System("al-qaum")
         self.assertEqual(data.system, "al-qaum")
+
+    def test_change_client_name(self):
+        """
+        depends on test_a_get_case
+        updates case 42's client name and verifies the result
+        :return:
+        """
+        expected_name = "new_client_name"
+        data = dispatch.Tracker.get_case(value=42)
+        self.assertIsNotNone(data)
+        # data: dispatch.Case
+        data.Client(expected_name)
+        self.assertEqual(data.client, expected_name)
 
     def test_b_get_case(self):
         """
