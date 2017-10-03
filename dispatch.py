@@ -146,18 +146,21 @@ class Case:
 
     def __contains__(self, item):
         if item is None or not isinstance(item, str):
-            raise TypeError("got {} expected str".format(type(item)))
+            if isinstance(item,int):
+                if item == self.index:
+                    return True
+            else:
+                raise TypeError("got {} expected str".format(type(item)))
         elif item == self.client:
             return True
-        elif item == self.index:
-            return True
-        elif item.lower() in self.platform.lower():
+
+        elif item.lower() == self.platform.lower():
             return True
         elif self.rats is not None and item in self.rats:
             return True
         else:
             log("case.__contains__", "value is {} of type {}".format(item, type(item)))
-            return 42
+            return False
 
 
 class Utilities:
@@ -482,16 +485,19 @@ class Tracker:
 
     @staticmethod
     def get_case(**kwargs):
+        global database
         value = kwargs['value']
+        log("get_case", "value is {val} of type {typ}".format(val=value, typ=type(value)))
         for key in database:
             obj = database.get(key)
             # obj: Case
-            log("get_case", "value in obj = {}\n{obj}".format(value in obj, obj=obj), True)
+            log("get_case", "value in obj = {}\n{obj}\nvalue={val}".format(value in obj, obj=obj, val=value))
             if value in obj:
-                # print("value is {} of type {}".format(value, type(value)))
+                log("get_case", "match! returning {}".format(obj))
                 return obj
-        # return None
-        raise ValueError()
+        log("get_case", "no matching case for {}".format(value))
+        return None
+        # raise ValueError()
 
     @staticmethod
     def change_system(**kwargs):
