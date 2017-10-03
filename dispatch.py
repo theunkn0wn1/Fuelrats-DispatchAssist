@@ -509,47 +509,26 @@ class Tracker:
         return None
         # raise ValueError()
 
-    @staticmethod
-    def change_system(**kwargs):
-        i = kwargs['case']
-        system = kwargs['system']
-        case = database.get(int(i))
-        # case: Case
-        case.System(system)
-        log("change_system", "case c{id} {client} was updated to {system}".format(id=case.index,client=case.client,
-                                                                                  system=case.system))
-
-    @staticmethod
-    def change_platform(**kwargs):
-        i = kwargs['case']
-        platform = kwargs['platform']
-        case = database.get(int(i))
-        # case: Case
-        case.Platform(platform)
-        log("change_platform", "changed #{id} to platform {plat}".format(id=i, plat=platform), True)
-
-    @staticmethod
-    def toggle_cr(**kwargs):
-        case = database.get(kwargs['case'])
-        # case:Case
-        case.toggle_cr()
-        log("Cr", "toggling code red status for case #{id}".format(id=kwargs['case']))
-
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
     @staticmethod
     @eat_all
     def code_red(word, word_eol, userdata):
-        index = int(word[1])
-        case = database.get(index)
-        if case is None:
-            log("code_red", "case at index position {} does not exist.".format(index), True)
+        try:
+            index = int(word[1])
+            case = database.get(index)
+        except ValueError:
+            log("code_red", "Expected format: /cr case_number", True)
+        except IndexError:
+            log("code_red", "Expected format: /cr case_number", True)
         else:
-            # case: Case
-            log("code_red", "case #{index} [{client}]'s CR status has been updated".format(index=index,
-                                                                                           client=case.client), True)
-            case.Cr()
+            if case is None:
+                log("code_red", "case at index position {} does not exist.".format(index), True)
+            else:
+                # case: Case
+                log("code_red", "case #{index} [{client}]'s CR status has been updated".format(index=index,                                                                           client=case.client), True)
+                case.Cr()
 
     @staticmethod
     @eat_all
@@ -562,14 +541,23 @@ class Commands:
 
         except ValueError:
             log("client_name", "\0034 ERROR: {} is not a number!".format(word[1]), True)
+        except IndexError:
+            log("client", "\0033 Expected form: /client case_number client_irc_name", True)
 
     @staticmethod
     @eat_all
     def system(word, word_eol, userdata):
-        case = word[1]
-        log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
-        system = word_eol[0][2]  # assuming anything after the case number is part of the system...
-        Tracker.change_system(case=case, system=system)
+        try:
+            index = word[1]
+            log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
+            system = word_eol[0][2]  # assuming anything after the case number is part of the system...
+            case = database.get(index)
+            # case: Case
+            case.System(system)
+        except IndexError:
+            log("system", "expected syntax: /sys case_number long-system-name-that-can-contain-spaces", True)
+        except ValueError:
+            log("system", "case_number must be an integer, got {}".format(index))
 
     @staticmethod
     @eat_all

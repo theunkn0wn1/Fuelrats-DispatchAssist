@@ -8,7 +8,7 @@ class Tests(unittest.TestCase):
 
     def setUp(self):
         """
-        shared vars
+        shared vars that must be initialized prior to test
         :return:
         """
         dispatch.Tracker.append(data=dispatch.Case(index=42, client="client", platform='pc', cr=False, system="AL-quam"))
