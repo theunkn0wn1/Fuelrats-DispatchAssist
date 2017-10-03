@@ -561,6 +561,22 @@ class Commands:
 
     @staticmethod
     @eat_all
+    def platform(word, word_eol, userdata):
+        try:
+            index = int(word[1])
+            platform = word[2].lower()
+        except IndexError:
+            log("platform", "Expected form is /platform case_number platform", True)
+        except ValueError:
+            log("platform", "invalid argument", True)
+        else:
+            case = database.get(index)
+            # case: Case
+            case.Platform(platform)
+            log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
+
+    @staticmethod
+    @eat_all
     def toggle_verbose(*args):
         global verbose_logging
         verbose_logging = not verbose_logging
@@ -956,7 +972,8 @@ def init():
         "mv": cmd.change_index,
         "client": cmd.client,
         "sys": cmd.system,
-        "cr": cmd.code_red
+        "cr": cmd.code_red,
+        "platform": cmd.platform
     }
     try:
         if hc is not None:
