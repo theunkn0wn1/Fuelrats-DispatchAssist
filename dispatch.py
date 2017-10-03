@@ -562,9 +562,21 @@ class Commands:
     @staticmethod
     @eat_all
     def platform(word, word_eol, userdata):
+        """
+        updates a client's case to a valid platform
+        :param word:
+        :param word_eol:
+        :param userdata:
+        :return:
+        """
+        valid_platforms = ["pc", "xb", "ps"]
         try:
             index = int(word[1])
             platform = word[2].lower()
+            if platform not in valid_platforms:
+                log(
+                    "platform", "{platform} is not recognized, valid options are {options}".format(
+                        platform=platform, options=valid_platforms), True)
         except IndexError:
             log("platform", "Expected form is /platform case_number platform", True)
         except ValueError:
@@ -572,12 +584,19 @@ class Commands:
         else:
             case = database.get(index)
             # case: Case
+
             case.Platform(platform)
             log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
 
     @staticmethod
     @eat_all
     def toggle_verbose(*args):
+        """
+        Toggles the verbose_logging field
+        Use this only if you are sure you can withstand the flood!
+        :param args:
+        :return:
+        """
         global verbose_logging
         verbose_logging = not verbose_logging
         log("toggle_verbose", "Toggling verbose logging to {}".format(verbose_logging), True)
