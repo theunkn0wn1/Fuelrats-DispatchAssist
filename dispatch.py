@@ -645,7 +645,24 @@ class Commands:
     @staticmethod
     @eat_all
     def rats(word, word_eol, userdata):
-        pass
+        rat = []
+        try:
+            index = int(word[1])
+            case = database.get(index)
+            # case:Case
+            for value in word[2:]:  # taking any word after the index to be a rat
+                rat.append(value)  # and adding it to the case
+        except IndexError:
+            pass  # not enough arguments
+        except ValueError:
+            pass  # invalid input
+        else:
+            if len(rat) is 0:
+                pass  # not enough arguments
+            elif len(rat) is 1:
+                case.Rats(rat[0])  # just one
+            else:
+                case.Rats(rat)  # multiple, pass the list in
 
     @staticmethod
     @eat_all
@@ -1011,7 +1028,8 @@ def init():
         "client": cmd.client,
         "sys": cmd.system,
         "cr": cmd.code_red,
-        "platform": cmd.platform
+        "platform": cmd.platform,
+        "rats": cmd.rats
     }
     try:
         if hc is not None:
