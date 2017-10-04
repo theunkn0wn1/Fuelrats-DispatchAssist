@@ -36,11 +36,11 @@ you can add a up to 5 rats to a case, why do you need that many?
 Use the command `/assign case_number rat1 rat2... rat5` at minimum you must give one rat, at maximum 5.
 
 ### 4. Changing system
-Should the client give you an inaccurate system name you can update it using the command `'sys case_number really_long_syste_name_that_can_contain_spaces`
+Should the client give you an inaccurate system name you can update it using the command `/sys case_number really_long_syste_name_that_can_contain_spaces`
 Anything after the case number will be treated as part of the System.
 
 ### 5. Updating platform
-Should you need to update the client's platform, you can do so using `\platform platform`. vakid options are pc,xb, or ps; anything else will result in a warning.
+Should you need to update the client's platform, you can do so using `/platform platform`. vakid options are pc,xb, or ps; anything else will result in a warning.
 
 ### 6. Updating clients IRC name
 Clients sometimes make mistakes and enter ' client' into the commander name field on Kiwi, so a means of correcting that is needed.
