@@ -1,5 +1,9 @@
 Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fuel Rat dispatchers by offering a dispatch board and the means of keeping it up to date.
-
+# Build Status
+## Master
+[![Build Status](https://travis-ci.org/theunkn0wn1/Fuelrats-DispatchAssist.svg?branch=master)](https://travis-ci.org/theunkn0wn1/Fuelrats-DispatchAssist)
+## Dev
+[![Build Status](https://travis-ci.org/theunkn0wn1/Fuelrats-DispatchAssist.svg?branch=dev)](https://travis-ci.org/theunkn0wn1/Fuelrats-DispatchAssist)
 # Requirements:
 * Hexchat - {link} - currently this project only supports Hexchat. 
 * Python 3.5.2 - {link}
