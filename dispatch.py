@@ -556,7 +556,7 @@ class Commands:
     @eat_all
     def system(word, word_eol, userdata):
         try:
-            index = word[1]
+            index = int(word[1])
             log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
             system = word_eol[0][2]  # assuming anything after the case number is part of the system...
             case = database.get(index)
@@ -565,7 +565,7 @@ class Commands:
         except IndexError:
             log("system", "expected syntax: /sys case_number long-system-name-that-can-contain-spaces", True)
         except ValueError:
-            log("system", "case_number must be an integer, got {}".format(index))
+            log("system", "case_number must be an integer, got {}".format(word[1]), True)
 
     @staticmethod
     @eat_all
