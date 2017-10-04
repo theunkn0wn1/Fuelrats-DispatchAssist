@@ -108,7 +108,7 @@ class Case:
         self.index = index
         self.platform = platform
         self.cr = cr
-        self.rats = rats if rats is not None else [None]*5
+        self.rats = rats if rats is not None else []
         self.stage = stage
         self.language = language
         self.wing = False
@@ -136,15 +136,17 @@ class Case:
         else:
             raise TypeError("system must be of type str")
 
-    def Rats(self, rats):
+    def Rats(self, rats, mode='add'):
         if type(rats) is str:
-            i = 0
-            for entry in self.rats:  # single rat assignment
-                if entry is None:
-                    self.rats[i] = rats
-                    break  # otherwise it would fill an empty array, when we only want to fill one entry
-                i += 1
-        elif type(rats) is list:
+            if mode is "add":
+                self.rats.append(rats)
+
+            elif mode is "remove":
+                try:
+                    return self.rats.pop(self.rats.index(rats))
+                except ValueError:
+                    log("Case:Rats", "{value} is not a assigned rat!")
+        elif type(rats) is list and mode is "add":
             for rat in rats:
                 i = 0
                 for entry in self.rats:
