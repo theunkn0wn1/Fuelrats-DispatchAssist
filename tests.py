@@ -58,7 +58,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(ret.client, expected_client)
         self.assertEqual(ret.system, " CRUCIS SECTOR BQ-P A5-1")  # not sure *why* this needed a space
         self.assertEqual(ret.index, -1)
-        self.assertEqual(ret.rats, [None] * 3)
+        self.assertEqual(ret.rats, [None] * 5)
 
     def test_clear(self):
         ret = dispatch.Parser.parse(data=dispatch.clear_msg)
@@ -123,7 +123,7 @@ class Tests(unittest.TestCase):
         # data: dispatch.Case
         expected_rat = "theunkn0wn1[pc]"
         data.Rats(expected_rat)
-        self.assertEqual(data.rats, [expected_rat, None, None])
+        self.assertEqual(data.rats, [expected_rat, None, None, None, None])
         # dispatch.database.pop(42)
 
     def test_add_multiple_rats(self):
