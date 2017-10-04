@@ -36,7 +36,10 @@ def eat_all(wrapped_function):
     @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
     def wrapper(arg,*args, **kwargs):  # todo: learn why this doesn't munch arguments
         wrapped_function(arg, args, kwargs)
-        return hc.EAT_ALL
+        if hc is not None:
+            return hc.EAT_ALL
+        else:
+            return 0  # so i can test commands without hexchat being loaded
     return wrapper
 
 
@@ -556,6 +559,8 @@ class Commands:
     @eat_all
     def system(word, word_eol, userdata):
         try:
+            # log("system", word)
+            # log("system", word_eol)
             index = int(word[1])
             log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
             system = word_eol[0][2]  # assuming anything after the case number is part of the system...

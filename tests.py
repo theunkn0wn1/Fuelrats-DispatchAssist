@@ -131,9 +131,49 @@ class Tests(unittest.TestCase):
         # these names are random, any rats that may exist by these names are purely coincidental
         data = dispatch.database.get(42)
         self.assertIsNotNone(data)
-        data: dispatch.Case
+        # data: dispatch.Case
         data.Rats(expected_rats)
         self.assertEqual(expected_rats, data.rats)
+
+
+class CommandTesting(unittest.TestCase):
+    """
+    For the testing of / commands
+    """
+    def setUp(self):
+        """
+        shared vars that must be initialized prior to test
+        :return:
+        """
+        dispatch.Tracker.append(
+            data=dispatch.Case(index=64, client="PotatoClient", platform='ps', cr=False, system="Ki"))
+
+    def tearDown(self):
+        # print("popping 64 from database...")
+        dispatch.database.pop(64)
+        # print(dispatch.database)
+
+    def test_load(self):
+        pass  # just to prove i can do multiple Test Classes
+
+    def test_system(self):
+        # ['sys', '2', 'overall', 'asd']  # word
+        # (['sys 2 overall asd', '2 overall asd', 'overall asd', 'asd'], None)  # word_eol
+        dispatch.Commands.system(
+            ['system', '64', 'some_random_data'],
+            (["", "64 some_random_data", "some_random_data"]),
+            None)
+        data = dispatch.database.get(64)
+        # data: dispatch.Case
+        self.assertEqual(data.system, "some_random_data")
+
+    def test_cr(self):
+        dispatch.Commands.code_red(["cr", "64"], ([]), None)
+        data = dispatch.database.get(64)
+        self.assertIsNotNone(data)
+        self.assertTrue(data.cr)
+        dispatch.Commands.code_red(["cr", "64"], ([]), None)
+        self.assertFalse(data.cr)
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
