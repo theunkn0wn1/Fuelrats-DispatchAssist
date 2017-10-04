@@ -108,7 +108,7 @@ class Case:
         self.index = index
         self.platform = platform
         self.cr = cr
-        self.rats = rats if rats is not None else [None]*3
+        self.rats = rats if rats is not None else [None]*5
         self.stage = stage
         self.language = language
         self.wing = False
@@ -1029,7 +1029,7 @@ def init():
         "sys": cmd.system,
         "cr": cmd.code_red,
         "platform": cmd.platform,
-        "rats": cmd.rats
+        "assign": cmd.rats
     }
     try:
         if hc is not None:
