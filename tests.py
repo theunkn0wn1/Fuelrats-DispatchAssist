@@ -15,7 +15,9 @@ class Tests(unittest.TestCase):
             data=dispatch.Case(index=42, client="client", platform='pc', cr=False, system="AL-quam"))
 
     def tearDown(self):
+        # print("popping 42 from database...")
         dispatch.database.pop(42)
+        # print(dispatch.database)
 
     def test_inject_a(self):
         ret = dispatch.Parser.parse(data=dispatch.debug_constant_B)
@@ -118,8 +120,20 @@ class Tests(unittest.TestCase):
     def test_add_single_rat(self):
         data = dispatch.database.get(42)
         self.assertIsNotNone(data, None)  # if data is None then we can just stop here
-        data: dispatch.Case
+        # data: dispatch.Case
+        expected_rat = "theunkn0wn1[pc]"
+        data.Rats(expected_rat)
+        self.assertEqual(data.rats, [expected_rat, None, None])
+        # dispatch.database.pop(42)
 
+    def test_add_multiple_rats(self):
+        expected_rats = ["orion", "Neptunes_Beard[xb-nd]", "stack_overflow[xb]"]
+        # these names are random, any rats that may exist by these names are purely coincidental
+        data = dispatch.database.get(42)
+        self.assertIsNotNone(data)
+        data: dispatch.Case
+        data.Rats(expected_rats)
+        self.assertEqual(expected_rats, data.rats)
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)

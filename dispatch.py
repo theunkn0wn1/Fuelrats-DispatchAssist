@@ -99,13 +99,13 @@ class Case:
     """
     Stores a case
     """
-    def __init__(self, client=None, index=None, cr=False, platform=None, rats=[None]*3, system=None,stage=0, language=None,
+    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None, stage=0, language=None,
                  raw=None):
         self.client = client
         self.index = index
         self.platform = platform
         self.cr = cr
-        self.rats = rats
+        self.rats = rats if rats is not None else [None]*3
         self.stage = stage
         self.language = language
         self.wing = False
@@ -142,6 +142,13 @@ class Case:
                     break  # otherwise it would fill an empty array, when we only want to fill one entry
                 i += 1
         elif type(rats) is list:
+            for rat in rats:
+                i = 0
+                for entry in self.rats:
+                    if entry is None:
+                        self.rats[i] = rat
+                        break  # or things get weird
+                    i += 1
             self.rats = rats
         else:
             raise TypeError("rats must be type str or list")
