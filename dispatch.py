@@ -99,7 +99,7 @@ class Case:
     """
     Stores a case
     """
-    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None,stage=0, language=None,
+    def __init__(self, client=None, index=None, cr=False, platform=None, rats=[None]*3, system=None,stage=0, language=None,
                  raw=None):
         self.client = client
         self.index = index
@@ -139,6 +139,7 @@ class Case:
             for entry in self.rats:  # single rat assignment
                 if entry is None:
                     self.rats[i] = rats
+                    break  # otherwise it would fill an empty array, when we only want to fill one entry
                 i += 1
         elif type(rats) is list:
             self.rats = rats
@@ -627,6 +628,11 @@ class Commands:
         on_message_received(clear_msg)
 
         log("run_tests", "done!")
+
+    @staticmethod
+    @eat_all
+    def rats(word, word_eol, userdata):
+        pass
 
     @staticmethod
     @eat_all
