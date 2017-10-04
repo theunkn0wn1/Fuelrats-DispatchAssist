@@ -590,6 +590,7 @@ class Commands:
                 log(
                     "platform", "{platform} is not recognized, valid options are {options}".format(
                         platform=platform, options=valid_platforms), True)
+                raise ValueError()
         except IndexError:
             log("platform", "Expected form is /platform case_number platform", True)
         except ValueError:

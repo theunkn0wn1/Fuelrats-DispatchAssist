@@ -149,12 +149,13 @@ class CommandTesting(unittest.TestCase):
             data=dispatch.Case(index=64, client="PotatoClient", platform='ps', cr=False, system="Ki"))
 
     def tearDown(self):
+        """
+        clean up after each case
+        :return:
+        """
         # print("popping 64 from database...")
         dispatch.database.pop(64)
         # print(dispatch.database)
-
-    def test_load(self):
-        pass  # just to prove i can do multiple Test Classes
 
     def test_system(self):
         # ['sys', '2', 'overall', 'asd']  # word
@@ -174,6 +175,24 @@ class CommandTesting(unittest.TestCase):
         self.assertTrue(data.cr)
         dispatch.Commands.code_red(["cr", "64"], ([]), None)
         self.assertFalse(data.cr)
+
+    def test_platform_valid(self):
+        expected_platforms = ['xb', 'pc', 'ps']
+        data = dispatch.database.get(64)
+        # data: dispatch.Case
+        for platform in expected_platforms:
+            with self.subTest(platform=platform):
+                    dispatch.Commands.platform(['platform', '64', platform], None, None)
+                    self.assertEqual(data.platform, platform)
+
+    def test_platform_invalid(self):
+        bad_platforms = ['xbox', "pee-cee","ps3",""]
+        data = dispatch.database.get(64)
+        # data: dispatch.Case
+        for platform in bad_platforms:
+            with self.subTest(platform=platform):
+                dispatch.Commands.platform(['platform', '64', platform], None, None)
+        self.assertEqual(data.platform, 'ps')
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
