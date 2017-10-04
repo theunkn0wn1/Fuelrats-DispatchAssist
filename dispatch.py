@@ -148,13 +148,15 @@ class Case:
                     log("Case:Rats", "{value} is not a assigned rat!")
         elif type(rats) is list and mode is "add":
             for rat in rats:
+                    self.rats.append(rat)
+            # self.rats = rats
+        elif isinstance(rats, list) and mode is "remove":
+            for rat in rats:
                 i = 0
-                for entry in self.rats:
-                    if entry is None:
-                        self.rats[i] = rat
-                        break  # or things get weird
+                for value in self.rats:
+                    if value == rat:
+                        self.rats.pop(i)
                     i += 1
-            self.rats = rats
         else:
             raise TypeError("rats must be type str or list")
 
@@ -651,20 +653,21 @@ class Commands:
         try:
             index = int(word[1])
             case = database.get(index)
+            mode = word[2]
             # case:Case
-            for value in word[2:]:  # taking any word after the index to be a rat
+            for value in word[3:]:  # taking any word after the index to be a rat
                 rat.append(value)  # and adding it to the case
         except IndexError:
-            pass  # not enough arguments
+            raise  # not enough arguments
         except ValueError:
-            pass  # invalid input
+            raise  # invalid input
         else:
             if len(rat) is 0:
                 pass  # not enough arguments
             elif len(rat) is 1:
-                case.Rats(rat[0])  # just one
+                case.Rats(rat[0], mode)  # just one
             else:
-                case.Rats(rat)  # multiple, pass the list in
+                case.Rats(rat, mode)  # multiple, pass the list in
 
     @staticmethod
     @eat_all

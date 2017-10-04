@@ -3,7 +3,7 @@ import unittest
 import dispatch
 
 
-class Tests(unittest.TestCase):
+class Backend_tests(unittest.TestCase):
     # NOTE: tests methods must begin with test_, otherwise
 
     def setUp(self):
@@ -58,7 +58,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(ret.client, expected_client)
         self.assertEqual(ret.system, " CRUCIS SECTOR BQ-P A5-1")  # not sure *why* this needed a space
         self.assertEqual(ret.index, -1)
-        self.assertEqual(ret.rats, [None])
+        self.assertEqual(ret.rats, [])
 
     def test_clear(self):
         ret = dispatch.Parser.parse(data=dispatch.clear_msg)
@@ -156,6 +156,16 @@ class CommandTesting(unittest.TestCase):
         # print("popping 64 from database...")
         dispatch.database.pop(64)
         # print(dispatch.database)
+
+    # @unittest.expectedFailure
+    def test_delete_rats(self):
+        expected_deleted = ["theunkn0wn1[pc]", "Orion[xb|nd]"]
+        data = dispatch.database.get(64)
+        data: dispatch.Case
+        data.Rats(expected_deleted)
+        data.Rats(expected_deleted, mode='remove')
+        self.assertEqual([], data.rats)
+        self.assertNotEqual(expected_deleted, data.rats)
 
     def test_system(self):
         # ['sys', '2', 'overall', 'asd']  # word
