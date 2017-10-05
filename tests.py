@@ -135,6 +135,26 @@ class Backend_tests(unittest.TestCase):
         data.Rats(expected_rats)
         self.assertEqual(expected_rats, data.rats)
 
+    def test_delete_rats(self):
+        expected_deleted = [["theunkn0wn1[pc]", "Orion[xb|nd]", "somerat"], ["theunknown1[xb]"],
+                            [
+                                'xray',
+                                'november',
+                                'mike',
+                                'ratsignal',
+                                'im_just_making_this_up'
+                            ]]
+        data = dispatch.database.get(42)
+        # data: dispatch.Case
+        for testCase in expected_deleted:
+            with self.subTest(expected_deleted=testCase):
+                data.Rats(testCase)  # add them to the case
+                data.Rats(testCase, mode="remove")  # now remove them again
+                # data.Rats(expected_deleted)
+                # data.Rats(expected_deleted, mode='remove')
+                self.assertEqual([], data.rats)  # the list should be empty
+                self.assertNotEqual(expected_deleted, data.rats)  # and certainly not equal to the original
+
 
 class CommandTesting(unittest.TestCase):
     """
@@ -156,16 +176,6 @@ class CommandTesting(unittest.TestCase):
         # print("popping 64 from database...")
         dispatch.database.pop(64)
         # print(dispatch.database)
-
-    # @unittest.expectedFailure
-    def test_delete_rats(self):
-        expected_deleted = ["theunkn0wn1[pc]", "Orion[xb|nd]"]
-        data = dispatch.database.get(64)
-        data: dispatch.Case
-        data.Rats(expected_deleted)
-        data.Rats(expected_deleted, mode='remove')
-        self.assertEqual([], data.rats)
-        self.assertNotEqual(expected_deleted, data.rats)
 
     def test_system(self):
         # ['sys', '2', 'overall', 'asd']  # word
@@ -202,7 +212,16 @@ class CommandTesting(unittest.TestCase):
         for platform in bad_platforms:
             with self.subTest(platform=platform):
                 dispatch.Commands.platform(['platform', '64', platform], None, None)
-        self.assertEqual(data.platform, 'ps')
+        self.assertEqual(data.platform, 'ps')  # the platform should remain unchanged.
+
+    def test_add_rats(self):
+        """via command this time"""
+        expected_rats = ["theunkn0wn1[pc]", "ninjaKiwi"]
+        command = ["append", "64", "{}".format(expected_rats[0]), "{}".format(expected_rats[1])]
+        data = dispatch.database.get(64)
+        dispatch.Commands.add_rats(command)
+        # data: dispatch.Case
+        self.assertEqual(data.rats, expected_rats)
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)

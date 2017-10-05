@@ -146,10 +146,10 @@ class Case:
                     return self.rats.pop(self.rats.index(rats))
                 except ValueError:
                     log("Case:Rats", "{value} is not a assigned rat!")
-        elif type(rats) is list and mode is "add":
+        elif isinstance(rats, list) and mode == "add":
             for rat in rats:
                     self.rats.append(rat)
-            # self.rats = rats
+            # self.add_rats = add_rats
         elif isinstance(rats, list) and mode is "remove":
             for rat in rats:
                 i = 0
@@ -158,7 +158,8 @@ class Case:
                         self.rats.pop(i)
                     i += 1
         else:
-            raise TypeError("rats must be type str or list")
+            raise TypeError("add_rats must be type str or list. got {} with mode char {}".format(
+                type(rats), mode))
 
     def Cr(self):
         self.cr = not self.cr
@@ -422,8 +423,10 @@ class Tracker:
         for key in database:
             case = database.get(key)
             # case: Case
-
-            data.append([key, case.client, case.platform, case.cr, case.system, case.rats])
+            assigned_rats = []
+            for rat in case.rats:
+                assigned_rats.append(rat)
+            data.append([key, case.client, case.platform, case.cr, case.system, assigned_rats])
         log("readout", tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
 
@@ -648,26 +651,67 @@ class Commands:
 
     @staticmethod
     @eat_all
-    def rats(word, word_eol, userdata):
+    def add_rats(word, word_eol, userdata):
         rat = []
         try:
             index = int(word[1])
             case = database.get(index)
-            mode = word[2]
+            if case is None:
+                log("add_rats", "unable to find case with index {}".format(index))
+                return  # No point continuing... the case is invalid
+            # mode = word[2]
             # case:Case
-            for value in word[3:]:  # taking any word after the index to be a rat
+            for value in word[2:]:  # taking any word after the index to be a rat
                 rat.append(value)  # and adding it to the case
         except IndexError:
-            raise  # not enough arguments
+            log("add_rats", "not enough arguments", True)  # not enough arguments
+            return
         except ValueError:
             raise  # invalid input
+        except AttributeError:
+            raise
         else:
             if len(rat) is 0:
-                pass  # not enough arguments
+                log("add_rats", "not enough arguments", True)  # not enough arguments
             elif len(rat) is 1:
-                case.Rats(rat[0], mode)  # just one
+                log("add_rats", "adding single rat...")
+                case.Rats(rat[0], 'add')  # just one
             else:
-                case.Rats(rat, mode)  # multiple, pass the list in
+                log("add_rats", "addding add_rats...")
+                print(rat)
+                case.Rats(rat, 'add')  # multiple, pass the list in
+
+    @staticmethod
+    @eat_all
+    def remove_rats(word, word_eol, userdata):
+        rat = []
+        try:
+            index = int(word[1])
+            case = database.get(index)
+            if case is None:
+                log("add_rats", "unable to find case with index {}".format(index))
+                return  # No point continuing... the case is invalid
+            # mode = word[2]
+            # case:Case
+            for value in word[2:]:  # taking any word after the index to be a rat
+                rat.append(value)  # and adding it to the case
+        except IndexError:
+            log("add_rats", "not enough arguments", True)  # not enough arguments
+            return
+        except ValueError:
+            raise  # invalid input
+        except AttributeError:
+            raise
+        else:
+            if len(rat) is 0:
+                log("add_rats", "not enough arguments", True)  # not enough arguments
+            elif len(rat) is 1:
+                log("add_rats", "adding single rat...")
+                case.Rats(rat[0], 'remove')  # just one
+            else:
+                log("add_rats", "addding add_rats...")
+                print(rat)
+                case.Rats(rat, 'remove')  # multiple, pass the list in
 
     @staticmethod
     @eat_all
@@ -1001,7 +1045,7 @@ class StageManager:
             StageManager.change_platform(key, alpha, case_object)
             return True
         elif mode == 'add':
-            log("do_stage:add", "adding rats {},{},{} to {}".format(alpha, beta, gamma, key))  # TODO make work with kwargs
+            log("do_stage:add", "adding add_rats {},{},{} to {}".format(alpha, beta, gamma, key))  # TODO make work with kwargs
             StageManager.add_rats(case_object, [alpha, beta, gamma])
             return True
 
@@ -1034,7 +1078,8 @@ def init():
         "sys": cmd.system,
         "cr": cmd.code_red,
         "platform": cmd.platform,
-        "assign": cmd.rats
+        "assign": cmd.add_rats,
+        "unassign": cmd.remove_rats
     }
     try:
         if hc is not None:
