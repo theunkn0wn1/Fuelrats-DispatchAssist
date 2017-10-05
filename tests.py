@@ -52,13 +52,18 @@ class Backend_tests(unittest.TestCase):
         db = dispatch.database
         dispatch.on_message_received(dispatch.xb_rsig_message)
         ret = dispatch.Tracker.get_case(value=expected_client)
-        self.assertEqual(len(dispatch.database), 2)
+        # self.assertEqual(len(dispatch.database), 2)
         self.assertIsInstance(ret, dispatch.Case)
         self.assertEqual(ret.platform.lower(), 'xb')
         self.assertEqual(ret.client, expected_client)
         self.assertEqual(ret.system, " CRUCIS SECTOR BQ-P A5-1")  # not sure *why* this needed a space
         self.assertEqual(ret.index, -1)
         self.assertEqual(ret.rats, [])
+
+    def test_rat_Signal(self):
+        dispatch.on_message_received(dispatch.pc_rsig_message)
+        data = dispatch.database.get(4)
+        self.assertIsNotNone(data)
 
     def test_clear(self):
         ret = dispatch.Parser.parse(data=dispatch.clear_msg)
