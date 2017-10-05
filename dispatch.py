@@ -1,6 +1,11 @@
 from functools import wraps  # so decorators don't swallow docstrings
 
-import hexchat as hc
+try:
+    import hexchat as hc
+except ImportError:
+    hc = None
+    print("[WARN]: Hexchat module NOT found!")
+
 from tabulate import tabulate  # for outputting pretty tables
 
 # Globals
@@ -13,13 +18,16 @@ verbose_logging = False  # if you want to see everything, it can be deafening.
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
 debug_constant_C = ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
-rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02dan8630\x02', 'potato', '-', 'System:', '\x02Praea', 'Euq', 'PI-B', 'c11\x02', '(377.53', 'LY', 'from', 'Sol)', '-', 'Platform:', '\x02PC\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '(Case', '#4)']
+pc_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02dan8630\x02', 'potato', '-', 'System:', '\x02Praea', 'Euq', 'PI-B', 'c11\x02', '(377.53', 'LY', 'from', 'Sol)', '-', 'Platform:', '\x02PC\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '(Case', '#4)']
 ps_risg_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02Rawbird\x02', '-', 'System:',
                   '\x02OOCHOST', 'FD-N', 'A75-0\x02', '(not', 'in', 'EDDB)', '-', 'Platform:',
                   '\x02\x0312PS4\x03\x02', '-', 'O2:', 'NOT OK', '-', 'Language:', 'German', '(de-DE)', '(Case', '#2)']
 xb_rsig_message = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':RATSIGNAL', '-', 'CMDR', '\x02XX', 'SAM', 'JR', 'XX\x02', '-', 'System:', '\x02CRUCIS', 'SECTOR', 'BQ-P', 'A5-1\x02', '(24.01', 'LY', 'from', 'Fuelum)', '-', 'Platform:', '\x02\x0303XB\x03\x02', '-', 'O2:', 'OK', '-', 'Language:', 'English', '(en-US)', '-']
 clear_msg = [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':Case', 'Potato', 'FrozenDemon', 'got', 'cleared!']
-hc.prnt("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
+if hc is not None:
+    print("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
+else:
+    print("dispatch.py loading\n author: Theunkn0wn1")
 # Decorators
 
 
@@ -28,7 +36,10 @@ def eat_all(wrapped_function):
     @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
     def wrapper(arg,*args, **kwargs):  # todo: learn why this doesn't munch arguments
         wrapped_function(arg, args, kwargs)
-        return hc.EAT_ALL
+        if hc is not None:
+            return hc.EAT_ALL
+        else:
+            return 0  # so i can test commands without hexchat being loaded
     return wrapper
 
 
@@ -91,13 +102,13 @@ class Case:
     """
     Stores a case
     """
-    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None,stage=0, language=None,
+    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None, stage=0, language=None,
                  raw=None):
         self.client = client
         self.index = index
         self.platform = platform
         self.cr = cr
-        self.rats = rats
+        self.rats = rats if rats is not None else []
         self.stage = stage
         self.language = language
         self.wing = False
@@ -105,15 +116,77 @@ class Case:
         self.system = system
         self.raw = raw  # debug symbol
 
+    def Client(self, client):
+        """
+        Updates client name
+        :param client: new name
+        """
+        if isinstance(client, str):
+            self.client = client
+        else:
+            raise TypeError("client must be of type str")
+
+    def System(self, system):
+        """
+        Changes the Case's current system
+        :param system:str new system
+        """
+        if type(system) is str:
+            self.system = system
+        else:
+            raise TypeError("system must be of type str")
+
+    def Rats(self, rats, mode='add'):
+        if type(rats) is str:
+            if mode is "add":
+                self.rats.append(rats)
+
+            elif mode is "remove":
+                try:
+                    return self.rats.pop(self.rats.index(rats))
+                except ValueError:
+                    log("Case:Rats", "{value} is not a assigned rat!")
+        elif isinstance(rats, list) and mode == "add":
+            for rat in rats:
+                    self.rats.append(rat)
+            # self.add_rats = add_rats
+        elif isinstance(rats, list) and mode is "remove":
+            for rat in rats:
+                i = 0
+                for value in self.rats:
+                    if value == rat:
+                        self.rats.pop(i)
+                    i += 1
+        else:
+            raise TypeError("add_rats must be type str or list. got {} with mode char {}".format(
+                type(rats), mode))
+
+    def Cr(self):
+        self.cr = not self.cr
+
+    def Platform(self, data):
+        if isinstance(data, str):
+            self.platform = data
+        else:
+            raise TypeError("data expected to be type str")
+
     def __contains__(self, item):
-        if item is None:
-            return False
+        if item is None or not isinstance(item, str):
+            if isinstance(item,int):
+                if item == self.index:
+                    return True
+            else:
+                raise TypeError("got {} expected str".format(type(item)))
         elif item == self.client:
             return True
-        elif item == self.index:
+
+        elif item.lower() == self.platform.lower():
             return True
-        elif item in self.rats:
+        elif self.rats is not None and item in self.rats:
             return True
+        else:
+            log("case.__contains__", "value is {} of type {}".format(item, type(item)))
+            return False
 
 
 class Utilities:
@@ -215,12 +288,14 @@ class Parser:
                     log('step4', 'searching for CaseID...')
                     case = capture[i + 1].strip(',')
                     log('step4', 'cid is {CID}'.format(CID=case))
+                elif phrase.lower() == "with:":
+                    system = capture[i + 1].strip('"')
                 else:
                     # log("failed:", "word not read: {}".format(phrase))
                     pass
                 i += 1
             # log("parse_inject", "append({},{},{},{},{})".format(case, client, platform, False, 'En-us'))
-            return Case(client, case, platform=platform)
+            return Case(client, case, platform=platform, system=system)
 
     @staticmethod
     def parse_ratsignal(phrase):
@@ -230,7 +305,7 @@ class Parser:
         i = 0
         client = platform = lang = cr = cid = system = None  # init before use.. prevent potential errors
         for word in phrase:
-            cleaned_word = hc.strip(word)
+            cleaned_word = word
             if cleaned_word == "CMDR":
                 z = i + 2
                 client = Utilities.strip_fancy(phrase[i + 1])
@@ -305,7 +380,8 @@ class Parser:
                 client = data[i+2]
             i += 1
         case = Tracker.get_case(value=client)
-        case.cr = True
+        # case: Case
+        case.toggle_cr()
         return case
 
     @staticmethod
@@ -347,8 +423,10 @@ class Tracker:
         for key in database:
             case = database.get(key)
             # case: Case
-
-            data.append([key, case.client, case.platform, case.cr, case.system, case.rats])
+            assigned_rats = []
+            for rat in case.rats:
+                assigned_rats.append(rat)
+            data.append([key, case.client, case.platform, case.cr, case.system, assigned_rats])
         log("readout", tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
 
@@ -409,10 +487,10 @@ class Tracker:
             log("append", "new entry is {}".format(new_entry))
             database.update(new_entry)
             log("append", "new entry created...")
-            return 1
+            return True
         else:
             log("append", "data is NOT of type Case!")
-            return 0
+            return False
 
     @staticmethod
     @eat_all
@@ -435,44 +513,111 @@ class Tracker:
 
     @staticmethod
     def get_case(**kwargs):
+        global database
         value = kwargs['value']
+        log("get_case", "value is {val} of type {typ}".format(val=value, typ=type(value)))
         for key in database:
             obj = database.get(key)
             # obj: Case
+            log("get_case", "value in obj = {}\n{obj}\nvalue={val}".format(value in obj, obj=obj, val=value))
             if value in obj:
+                log("get_case", "match! returning {}".format(obj))
                 return obj
+        log("get_case", "no matching case for {}".format(value))
         return None
-
-    @staticmethod
-    def change_system(**kwargs):
-        i = kwargs['case']
-        system = kwargs['system']
-        case = database.get(int(i))
-        # case: Case
-        case.system = system
-        log("change_system", "case c{id} {client} was updated to {system}".format(id=case.index,client=case.client,
-                                                                                  system=case.system))
+        # raise ValueError()
 
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
+    @staticmethod
+    @eat_all
+    def code_red(word, word_eol, userdata):
+        try:
+            index = int(word[1])
+            case = database.get(index)
+        except ValueError:
+            log("code_red", "Expected format: /cr case_number", True)
+        except IndexError:
+            log("code_red", "Expected format: /cr case_number", True)
+        else:
+            if case is None:
+                log("code_red", "case at index position {} does not exist.".format(index), True)
+            else:
+                # case: Case
+                log("code_red", "case #{index} [{client}]'s CR status has been updated".format(index=index,                                                                           client=case.client), True)
+                case.Cr()
 
     @staticmethod
     @eat_all
-    def client_name():
-        pass
+    def client(word, word_eol, userdata):
+        try:
+            index = int(word[1])
+            case = Tracker.get_case(value=index)
+            # case : Case
+            case.Client(word_eol[0][2])
+
+        except ValueError:
+            log("client_name", "\0034 ERROR: {} is not a number!".format(word[1]), True)
+        except IndexError:
+            log("client", "\0033 Expected form: /client case_number client_irc_name", True)
 
     @staticmethod
     @eat_all
     def system(word, word_eol, userdata):
-        case = word[1]
-        log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
-        system = word_eol[0][2]  # assuming anything after the case number is part of the system...
-        Tracker.change_system(case=case, system=system)
+        try:
+            # log("system", word)
+            # log("system", word_eol)
+            index = int(word[1])
+            log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
+            system = word_eol[0][2]  # assuming anything after the case number is part of the system...
+            case = database.get(index)
+            # case: Case
+            case.System(system)
+        except IndexError:
+            log("system", "expected syntax: /sys case_number long-system-name-that-can-contain-spaces", True)
+        except ValueError:
+            log("system", "case_number must be an integer, got {}".format(word[1]), True)
+
+    @staticmethod
+    @eat_all
+    def platform(word, word_eol, userdata):
+        """
+        updates a client's case to a valid platform
+        :param word:
+        :param word_eol:
+        :param userdata:
+        :return:
+        """
+        valid_platforms = ["pc", "xb", "ps"]
+        try:
+            index = int(word[1])
+            platform = word[2].lower()
+            if platform not in valid_platforms:
+                log(
+                    "platform", "{platform} is not recognized, valid options are {options}".format(
+                        platform=platform, options=valid_platforms), True)
+                raise ValueError()
+        except IndexError:
+            log("platform", "Expected form is /platform case_number platform", True)
+        except ValueError:
+            log("platform", "invalid argument", True)
+        else:
+            case = database.get(index)
+            # case: Case
+
+            case.Platform(platform)
+            log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
 
     @staticmethod
     @eat_all
     def toggle_verbose(*args):
+        """
+        Toggles the verbose_logging field
+        Use this only if you are sure you can withstand the flood!
+        :param args:
+        :return:
+        """
         global verbose_logging
         verbose_logging = not verbose_logging
         log("toggle_verbose", "Toggling verbose logging to {}".format(verbose_logging), True)
@@ -491,11 +636,11 @@ class Commands:
         # assert not Tracker.rm([None, 9], None, None)  # if we can't remove the case - it didn't get formed as expected
 
         log('run_tests', "Running pc rsig...")
-        Tracker.inject([None, None, None], True, rsig_message)
+        Tracker.inject([None, None, None], True, pc_rsig_message)
         # assert not Tracker.rm([None, 4], None, None)
 
         log("run_tests", 'Running pc rsig via on_message_received...')
-        on_message_received(rsig_message, None, None)
+        on_message_received(pc_rsig_message, None, None)
         on_message_received(ps_risg_message)
         log("run_tests", "running xb rsig via on_message_received")
         on_message_received(xb_rsig_message)
@@ -503,6 +648,70 @@ class Commands:
         on_message_received(clear_msg)
 
         log("run_tests", "done!")
+
+    @staticmethod
+    @eat_all
+    def add_rats(word, word_eol, userdata):
+        rat = []
+        try:
+            index = int(word[1])
+            case = database.get(index)
+            if case is None:
+                log("add_rats", "unable to find case with index {}".format(index))
+                return  # No point continuing... the case is invalid
+            # mode = word[2]
+            # case:Case
+            for value in word[2:]:  # taking any word after the index to be a rat
+                rat.append(value)  # and adding it to the case
+        except IndexError:
+            log("add_rats", "not enough arguments", True)  # not enough arguments
+            return
+        except ValueError:
+            raise  # invalid input
+        except AttributeError:
+            raise
+        else:
+            if len(rat) is 0:
+                log("add_rats", "not enough arguments", True)  # not enough arguments
+            elif len(rat) is 1:
+                log("add_rats", "adding single rat...")
+                case.Rats(rat[0], 'add')  # just one
+            else:
+                log("add_rats", "addding add_rats...")
+                print(rat)
+                case.Rats(rat, 'add')  # multiple, pass the list in
+
+    @staticmethod
+    @eat_all
+    def remove_rats(word, word_eol, userdata):
+        rat = []
+        try:
+            index = int(word[1])
+            case = database.get(index)
+            if case is None:
+                log("add_rats", "unable to find case with index {}".format(index))
+                return  # No point continuing... the case is invalid
+            # mode = word[2]
+            # case:Case
+            for value in word[2:]:  # taking any word after the index to be a rat
+                rat.append(value)  # and adding it to the case
+        except IndexError:
+            log("add_rats", "not enough arguments", True)  # not enough arguments
+            return
+        except ValueError:
+            raise  # invalid input
+        except AttributeError:
+            raise
+        else:
+            if len(rat) is 0:
+                log("add_rats", "not enough arguments", True)  # not enough arguments
+            elif len(rat) is 1:
+                log("add_rats", "adding single rat...")
+                case.Rats(rat[0], 'remove')  # just one
+            else:
+                log("add_rats", "addding add_rats...")
+                print(rat)
+                case.Rats(rat, 'remove')  # multiple, pass the list in
 
     @staticmethod
     @eat_all
@@ -836,7 +1045,7 @@ class StageManager:
             StageManager.change_platform(key, alpha, case_object)
             return True
         elif mode == 'add':
-            log("do_stage:add", "adding rats {},{},{} to {}".format(alpha, beta, gamma, key))  # TODO make work with kwargs
+            log("do_stage:add", "adding add_rats {},{},{} to {}".format(alpha, beta, gamma, key))  # TODO make work with kwargs
             StageManager.add_rats(case_object, [alpha, beta, gamma])
             return True
 
@@ -864,19 +1073,30 @@ def init():
         "board": board.readout,
         "verbose": cmd.toggle_verbose,
         "raw_board": Tracker.debug_print,
-        "mv": cmd.change_index
+        "mv": cmd.change_index,
+        "client": cmd.client,
+        "sys": cmd.system,
+        "cr": cmd.code_red,
+        "platform": cmd.platform,
+        "assign": cmd.add_rats,
+        "unassign": cmd.remove_rats
     }
     try:
-        for key in commands:
-            log("init", "adding hook for\t{}".format(key))
-            hc.hook_command(key, commands[key])
-        hc.hook_server("PRIVMSG", on_message_received)
-
+        if hc is not None:
+            for key in commands:
+                log("init", "adding hook for\t{}".format(key))
+                hc.hook_command(key, commands[key])
+            hc.hook_server("PRIVMSG", on_message_received)
+        else:
+            log("init:hexchat", "hexchat module is not loaded, skipping hex init...")
     except Exception as e:
         log("Init", "\0034Failure adding hooks! error reads as follows:", True)
         log("Init", e, True)
     else:
-        log("Init", "\0033 Everything is prepared. Ready.", True)
+        if hc is not None:
+            log("Init", "\0033 loading completed.", True)
+        else:
+            log("Init", "loading completed.")
 
 
 # ['\x0329RatMama[BOT]', 'Incoming Client: Azrael Wolfmace - System: LP 673-13 - Platform: XB - O2: OK - Language: English (English-US) - IRC Nickname: Azrael_Wolfmace', '&']
