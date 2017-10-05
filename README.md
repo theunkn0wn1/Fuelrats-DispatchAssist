@@ -51,16 +51,21 @@ Example:
 
 This will delete case #2 from the board and stop tracking it.
 ### 3. Adding rats
-you can add a up to 5 rats to a case, why do you need that many?
-Use the command `/assign case_number rat1 rat2... rat5` at minimum you must give one rat, at maximum 5.
+you can add as many rats you need to a case, why do you need more than three i have no idea...
+Use the command `/assign case_number rat1 rat2... ratn` at minimum you must give one rat.
 
-### 4. Changing system
+### 4. Removing rats
+Mistakes are made, sometimes you give the wrong rat the go. you can use `/unassign case_number rat1.. ratn` to remove them from tracking
+### 5. Changing system
 Should the client give you an inaccurate system name you can update it using the command `/sys case_number really_long_syste_name_that_can_contain_spaces`
 Anything after the case number will be treated as part of the System.
 
-### 5. Updating platform
+### 6. Updating platform
 Should you need to update the client's platform, you can do so using `/platform platform`. vakid options are pc,xb, or ps; anything else will result in a warning.
 
-### 6. Updating clients IRC name
+### 7. Updating clients IRC name
 Clients sometimes make mistakes and enter ' client' into the commander name field on Kiwi, so a means of correcting that is needed.
 You can update their IRC name via the command `/client case_number new_irc_name`. It cannot contain spaces.
+### 8. Toggling CR status
+Some clients turn code-red mid rescue, please follow all standard proceedures first then you can, should this script fail to detect the change, use the command `/cr case_number` to update the board
+The same command can be used say, for instance, a client connects CR but then reports OK o2. the command is a toggle.

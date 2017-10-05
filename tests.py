@@ -217,7 +217,7 @@ class CommandTesting(unittest.TestCase):
     def test_add_rats(self):
         """via command this time"""
         expected_rats = ["theunkn0wn1[pc]", "ninjaKiwi"]
-        command = ["append", "64", "{}".format(expected_rats[0]), "{}".format(expected_rats[1])]
+        command = ["append", "64"] + expected_rats
         data = dispatch.database.get(64)
         dispatch.Commands.add_rats(command)
         # data: dispatch.Case
