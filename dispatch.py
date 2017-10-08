@@ -43,22 +43,6 @@ def eat_all(wrapped_function):
     return wrapper
 
 
-def required_args(num, is_strict=False):
-    def decorator(my_function):
-        def fun_wrapper(*func_args):
-            log("[DEBUG]", func_args[0])
-            log("[DEBUG]", len(func_args[1]))
-            if len(func_args[1]) == num+1:
-                my_function
-            elif len(func_args[1]) >= num+1 and not is_strict:
-                my_function(func_args)
-            else:
-                print("argument mismatch. Got {} expected {}".format(len(func_args[1]), num))
-                return -1
-        return fun_wrapper
-    return decorator
-
-
 def log(trace, msg, verbose=False):
     global verbose_logging
     if verbose_logging:
@@ -115,6 +99,17 @@ class Case:
         self.has_forwarded = False
         self.system = system
         self.raw = raw  # debug symbol
+
+    def Stage(self, status):
+        """
+        Updates client stage
+        :param status: status to set
+        :return:
+        """
+        if isinstance(status, int):
+            self.stage = status
+        elif isinstance(status,str):
+            pass
 
     def Client(self, client):
         """
@@ -416,7 +411,7 @@ class Tracker:
     @staticmethod
     @eat_all
     def readout(*args):
-        headers = ["#", "Client", "Platform", "cr", "system", "Assigned rats"]
+        headers = ["#", "Client", "Platform", "cr", "system", "Assigned rats", "stage"]
         data = []
         # print("readout\t",database)
         # log("readout", "- Index - | - client- | - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
@@ -426,7 +421,7 @@ class Tracker:
             assigned_rats = []
             for rat in case.rats:
                 assigned_rats.append(rat)
-            data.append([key, case.client, case.platform, case.cr, case.system, assigned_rats])
+            data.append([key, case.client, case.platform, case.cr, case.system, assigned_rats, case.stage])
         log("readout", tabulate(data, headers, "grid", missingval="<ERROR>"), True)
         # print("readout", database)
 
@@ -530,6 +525,27 @@ class Tracker:
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
+
+    @staticmethod
+    @eat_all
+    def new_case(word, word_eol, userdata):
+        """
+        Create a new stub case
+        :param word: space delimenated args
+        :param word_eol:
+        :param userdata:
+        :return:
+        """
+        try:
+            index = int(word[1])
+        except IndexError:
+            log("new_case", "Not enough arguments. expected case_number")
+        except TypeError:
+            log("new_case", "{} cannot be converted to a number, please give me a number.".format(word[1]))
+        else:
+            log("new_case", "generating stub case with index {}...".format(index), True)
+            Tracker.append(data=Case(index=index))
+
     @staticmethod
     @eat_all
     def code_red(word, word_eol, userdata):
@@ -1079,7 +1095,8 @@ def init():
         "cr": cmd.code_red,
         "platform": cmd.platform,
         "assign": cmd.add_rats,
-        "unassign": cmd.remove_rats
+        "unassign": cmd.remove_rats,
+        "new": cmd.new_case
     }
     try:
         if hc is not None:
