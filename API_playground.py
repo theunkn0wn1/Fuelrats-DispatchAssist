@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import websocket
@@ -43,12 +44,39 @@ class Request:
 
 
 class Api:
+    @staticmethod
+    async def parse_json(data: dict):
+        """
+        parse_json incoming client data from API
+        :param data: dict, raw JSON dict to parse_json
+        :return output_data: array of Case instances
+        """
+        output_data = {}  # since we are going to be parsing multiple cases at once
+        for entry in data['data']:
+            await output_data.update({entry['attributes']['data']['boardIndex']: Case(
+                client=entry['attributes']['data']['IRCNick'],
+                language=entry["attributes"]['data']['langID'],
+                cr=entry['attributes']['codeRed'],
+                system=entry['attributes']['system'],
+                index=entry['attributes']['data']['boardIndex'],
+                platform=entry['attributes']['platform'],
+                raw=entry
+
+            )})
+        return output_data
 
     @staticmethod
     async def retrieve_cases(socket):
+        """
+
+        :param socket: open websocket to tx/rx over
+        :return:
+        """
         socket: websocket.WebSocket
         socket.send(Request(['rescues', 'read'], {}, {}, status={'$not': 'open'}))
-        return await socket.recv()  # as this may take a while
+        response = await socket.recv()  # as this may take a while
+        return Api.parse_json(response)
+        # return response
 
 
 def init():
@@ -59,25 +87,7 @@ def init():
         bearer_token = file_object.readline()[2:]
 
 
-def parse_json(data: dict):
-    """
-    parse_json incoming client data from API
-    :param data: dict, raw JSON dict to parse_json
-    :return output_data: array of Case instances
-    """
-    output_data = {}  # since we are going to be parsing multiple cases at once
-    for entry in data['data']:
-        output_data.update({entry['attributes']['data']['boardIndex']: Case(
-            client=entry['attributes']['data']['IRCNick'],
-            language=entry["attributes"]['data']['langID'],
-            cr=entry['attributes']['codeRed'],
-            system=entry['attributes']['system'],
-            index=entry['attributes']['data']['boardIndex'],
-            platform=entry['attributes']['platform'],
-            raw=entry
 
-        )})
-    return output_data
 
 
 if __name__ == "__main__":
@@ -94,6 +104,7 @@ if __name__ == "__main__":
 
     print(ws.recv())
     message = Request(['rescues', 'read'], {}, {}, status={'$not': 'open'})
+    # message = Request(['rescues', 'read'], {}, {}, {})
     print(message.request())
     ws.send(message.request())
     result = ws.recv()
@@ -102,9 +113,9 @@ if __name__ == "__main__":
     print("attempting parse_json")
     parsed_result = json.loads(result)
     print(parsed_result)
-
+    loop = asyncio.get_event_loop().run_until_complete(Api.retrieve_cases())
     print("attempting Case conversion...")
-    case_data = parse_json(parsed_result)
+    case_data = parse_json()
     for case in case_data:
         x=case_data.get(case)
         print("{index}: client = {client}\tplatform={platform}\tcr={cr}\tsystem={system}".format(
