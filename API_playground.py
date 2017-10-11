@@ -87,9 +87,6 @@ def init():
         bearer_token = file_object.readline()[2:]
 
 
-
-
-
 if __name__ == "__main__":
     # websocket.enableTrace(True)
     print("running init...")
@@ -115,7 +112,7 @@ if __name__ == "__main__":
     print(parsed_result)
     loop = asyncio.get_event_loop().run_until_complete(Api.retrieve_cases())
     print("attempting Case conversion...")
-    case_data = parse_json()
+    # case_data = Api.parse_json()
     for case in case_data:
         x=case_data.get(case)
         print("{index}: client = {client}\tplatform={platform}\tcr={cr}\tsystem={system}".format(
