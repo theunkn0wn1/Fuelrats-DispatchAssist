@@ -1,6 +1,10 @@
-import websocket
 import json
-import dispatch
+
+import websocket
+
+# import dispatch
+from dispatch import Case
+
 bearer_token = ""  # TODO: NO NOT COMMIT!
 
 
@@ -38,12 +42,42 @@ class Request:
         return json.dumps(obj)
 
 
+class Api:
+
+    @staticmethod
+    async def retrieve_cases(socket):
+        socket: websocket.WebSocket
+        socket.send(Request(['rescues', 'read'], {}, {}, status={'$not': 'open'}))
+        return await socket.recv()  # as this may take a while
+
+
 def init():
     """Sets things up"""
     global bearer_token
     with open(Config.token_file, 'r') as file_object:
         file_object.readline()
         bearer_token = file_object.readline()[2:]
+
+
+def parse_json(data: dict):
+    """
+    parse_json incoming client data from API
+    :param data: dict, raw JSON dict to parse_json
+    :return output_data: array of Case instances
+    """
+    output_data = {}  # since we are going to be parsing multiple cases at once
+    for entry in data['data']:
+        output_data.update({entry['attributes']['data']['boardIndex']: Case(
+            client=entry['attributes']['data']['IRCNick'],
+            language=entry["attributes"]['data']['langID'],
+            cr=entry['attributes']['codeRed'],
+            system=entry['attributes']['system'],
+            index=entry['attributes']['data']['boardIndex'],
+            platform=entry['attributes']['platform'],
+            raw=entry
+
+        )})
+    return output_data
 
 
 if __name__ == "__main__":
@@ -59,10 +93,20 @@ if __name__ == "__main__":
     ws.connect(url=Config.api_url[:26])
 
     print(ws.recv())
-    message = Request(['rescues', 'read'], {}, {}, status={'$not': 'closed'})
+    message = Request(['rescues', 'read'], {}, {}, status={'$not': 'open'})
     print(message.request())
-
     ws.send(message.request())
     result = ws.recv()
     print("Received '%s'" % result)
+
+    print("attempting parse_json")
+    parsed_result = json.loads(result)
+    print(parsed_result)
+
+    print("attempting Case conversion...")
+    case_data = parse_json(parsed_result)
+    for case in case_data:
+        x=case_data.get(case)
+        print("{index}: client = {client}\tplatform={platform}\tcr={cr}\tsystem={system}".format(
+            index=x.index, client=x.client, platform=x.platform, cr=x.cr, system=x.system))
     ws.close()
