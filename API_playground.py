@@ -1,12 +1,22 @@
-import asyncio
 import json
+import json
+import threading
+from time import sleep
 
 import websocket
 
 # import dispatch
 from dispatch import Case
 
+__module_name__ = "api_playground"
+__module_version__ = "0.0.2"
+__module_description__ = "what could possibly go wrong?"
 bearer_token = ""  # TODO: NO NOT COMMIT!
+is_shutdown = False  # set this to true for child threads to quit
+try:
+    import hexchat as hc
+except ImportError:
+    hc = None
 
 
 class Config:
@@ -44,6 +54,29 @@ class Request:
 
 
 class Api:
+    my_websocket = None
+
+    @staticmethod
+    def on_recv(socket, message):
+        print("got message: data is {}".format(message))
+        # socket:websocket.WebSocketApp
+        sleep(2)
+        print("potato")
+        socket.close()
+
+    @staticmethod
+    def on_open(socket):
+        print("connection to API opened")
+        Api.my_websocket = socket
+
+    @staticmethod
+    def on_error(socket, error):
+        print("some error occured!\n{}".format(error))
+
+    @staticmethod
+    def on_close(socket):
+        print("####\tsocket closed\t####")
+
     @staticmethod
     async def parse_json(data: dict):
         """
@@ -72,11 +105,42 @@ class Api:
         :param socket: open websocket to tx/rx over
         :return:
         """
-        socket: websocket.WebSocket
-        socket.send(Request(['rescues', 'read'], {}, {}, status={'$not': 'open'}))
+        # socket: websocket.WebSocket
+        await socket.send(Request(['rescues', 'read'], {}, {}, status={'$not': 'open'}))
         response = await socket.recv()  # as this may take a while
         return Api.parse_json(response)
         # return response
+
+    @staticmethod
+    def worker():
+        """
+        Fetch and maintain a websocket connection to the API
+        :return:
+        """
+
+        if is_shutdown:  # if this thread was somehow spawned during shutdown
+            return None
+        else:  # let the games begin
+            # Do init
+            # ws = websocket.create_connection(Config.api_url.format(token=bearer_token), )
+            # spawn a websocket client instance
+            url =Config.api_url.format(token=bearer_token)
+            # print("url = {}".format(url))
+            ws_client = websocket.WebSocketApp(url=url,
+                                               on_close=Api.on_close,
+                                               on_error=Api.on_error,
+                                               on_message=Api.on_recv)
+            ws_client.on_open = Api.on_open
+            # loop = asyncio.get_event_loop()
+            ws_client.run_forever()
+
+
+def start_api_connection():
+    print("====================")
+    print("actually starting the worker now...")
+    t = threading.Thread(target=Api.worker)
+    t.start()
+    return t
 
 
 def init():
@@ -84,37 +148,8 @@ def init():
     global bearer_token
     with open(Config.token_file, 'r') as file_object:
         file_object.readline()
-        bearer_token = file_object.readline()[2:]
+        bearer_token = file_object.readline()
 
 
 if __name__ == "__main__":
-    # websocket.enableTrace(True)
-    print("running init...")
-    # init()
-    print("init complete...")
-
-    print("opening websocket...")
-    print(Config.api_url.format(token=bearer_token))
-    ws = websocket.create_connection(Config.api_url.format(token=bearer_token))
-    print("connecting to {}".format(Config.api_url[:26]))
-    ws.connect(url=Config.api_url[:26])
-
-    print(ws.recv())
-    message = Request(['rescues', 'read'], {}, {}, status={'$not': 'open'})
-    # message = Request(['rescues', 'read'], {}, {}, {})
-    print(message.request())
-    ws.send(message.request())
-    result = ws.recv()
-    print("Received '%s'" % result)
-
-    print("attempting parse_json")
-    parsed_result = json.loads(result)
-    print(parsed_result)
-    loop = asyncio.get_event_loop().run_until_complete(Api.retrieve_cases())
-    print("attempting Case conversion...")
-    # case_data = Api.parse_json()
-    for case in case_data:
-        x=case_data.get(case)
-        print("{index}: client = {client}\tplatform={platform}\tcr={cr}\tsystem={system}".format(
-            index=x.index, client=x.client, platform=x.platform, cr=x.cr, system=x.system))
-    ws.close()
+    api_instance = start_api_connection()
