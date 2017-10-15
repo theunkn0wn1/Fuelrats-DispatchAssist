@@ -66,10 +66,14 @@ class API(threading.Thread):
         self.socket.run_forever()
         logger.log(level=0, msg="Exiting thread...")
 
-    async def potato(self):
+    async def send_message(self, message):
         self.socket: ws_client.WebSocketApp
-        await self.socket.send("{}")
+        await self.socket.send(message)
         # await self.socket.close()
+
+    async def close_connection(self):
+        print("Closing connection...")
+        await self.socket.close()
 
 
 class Server(threading.Thread):
@@ -80,17 +84,23 @@ class Server(threading.Thread):
         self.server = None
 
     async def on_message(self, websocket, path):
+        """
+        Handles incoming commands from websocket clients
+        :param websocket:
+        :param path:
+        :return:
+        """
         message = await websocket.recv()
-        print(f"--> {message}")
+        print(f"[INCOMING] --> {message}")
         if message == "qqq":
             await websocket.send("farewell cruel world!")
-            await api_intance.potato()
             websocket: ws_server.server.WebSocketServerProtocol
+            await api_instance.close_connection()
             websocket.close()
             print(f"{type(websocket)})")
             asyncio.get_event_loop().stop()
         elif message == "test":
-            await api_intance.potato()
+            await api_instance.send_message('{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
             await websocket.send("Done.")
             websocket.close()
         else:
@@ -117,6 +127,7 @@ if __name__ == "__main__":
     my_server.start()
     print("instance started")
     print("starting API session...")
-    api_intance = API(Config.api_url, api_token=input())
-    api_intance.start()
-    my_server.join()
+    api_instance = API(Config.api_url, api_token=input())
+    api_instance.start()
+    my_server.join()  # prevent server from terminating ungracefully
+    # TODO implement graceful shutdown when commanded over ws
