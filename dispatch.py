@@ -161,7 +161,7 @@ class Case:
 
     def Platform(self, data):
         if isinstance(data, str):
-            self.platform = data
+            self.platform = data.upper()
         else:
             raise TypeError("data expected to be type str")
 

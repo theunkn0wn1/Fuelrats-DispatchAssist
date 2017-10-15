@@ -80,8 +80,8 @@ class Backend_tests(unittest.TestCase):
         """
         data = dispatch.Tracker.get_case(value="client")
         self.assertIsNotNone(data)
-        data.Platform('xb')
-        self.assertEqual(data.platform, 'xb')
+        data.Platform('XB')
+        self.assertEqual(data.platform, 'XB')
 
     def test_change_system(self):
         """
@@ -202,7 +202,7 @@ class CommandTesting(unittest.TestCase):
         self.assertFalse(data.cr)
 
     def test_platform_valid(self):
-        expected_platforms = ['xb', 'pc', 'ps']
+        expected_platforms = ['XB', 'PC', 'PS']
         data = dispatch.database.get(64)
         # data: dispatch.Case
         for platform in expected_platforms:
