@@ -2,7 +2,7 @@ language: python
 python:
   - "3.5"
 install:
-  - pip install tabulate
+  - pip install requirements.txt
 cache: pip
 
 script:
