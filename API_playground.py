@@ -1,5 +1,4 @@
 import json
-import json
 import threading
 from time import sleep
 
@@ -21,7 +20,7 @@ except ImportError:
 
 class Config:
     # api_url = "wss://dev.api.fuelrats.com/"
-    api_url = "wss://dev.api.fuelrats.com/?bearer={token}"
+    api_url = "wss://api.fuelrats.com/?bearer={token}"
     token_file = "token.txt"
 #
 #

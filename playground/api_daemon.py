@@ -41,7 +41,14 @@ class Server(threading.Thread):
     async def on_message(self, websocket, path):
         message = await websocket.recv()
         print(f"--> {message}")
-        await websocket.send(message)
+        if message == "qqq":
+            await websocket.send("farewell cruel world!")
+            websocket: ws_server.server.WebSocketServerProtocol
+
+            print(f"{type(websocket)})")
+            asyncio.get_event_loop().stop()
+        else:
+            await websocket.send(message)
 
     def run(self):
         print("server start")
