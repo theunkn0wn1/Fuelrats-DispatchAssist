@@ -26,7 +26,7 @@ Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fue
     1. On my Github page click the green `Clone or download`
     2. on the resulting dropdown click 'download ZIP' and save it somewhere
     3. Extract the archive to your desired installation directory and note that directory down.
-    4. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full system math to where `dispatch.py` is located
+    4. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full system path to where `dispatch.py` is located
 
 Plans are in place to support other IRC clients that have a python3 interface at later point in time
 # Usage:
