@@ -6,10 +6,13 @@ Author: Theunkn0wn1
 
 import asyncio
 import logging
+import pickle  # for sending / receiving cmd data
 import threading
 
 import websocket as ws_client  # for interacting with the API
 import websockets as ws_server  # for hosting the WS server
+
+import playground.daemon_shared as shared_utils
 
 
 class Config:
@@ -38,11 +41,13 @@ class API(threading.Thread):
         self.url = url
         self.api_token = api_token
         self.socket = None
+        self.last_received_message = None
 
     def on_recv(self, socket, message):
         print("got message: data is {}".format(message))
+        self.last_received_message = message
         # socket:websocket.WebSocketApp
-        print("potato")
+        # print("potato")
         # socket.close()
 
     def on_open(self, socket):
@@ -71,6 +76,9 @@ class API(threading.Thread):
         self.socket.send(message)
         # await self.socket.close()
 
+    def get_last_message(self):
+        return self.last_received_message
+
     def close_connection(self):
         print("Closing connection...")
         self.socket.close()
@@ -92,21 +100,31 @@ class Server(threading.Thread):
         """
         message = await websocket.recv()
         print(f"[INCOMING] --> {message}")
-        if message == "qqq":
-            await websocket.send("farewell cruel world!")
-            websocket: ws_server.server.WebSocketServerProtocol
-            api_instance.close_connection()
-            websocket.close()
-            asyncio.get_event_loop().stop()
-        elif message == "test":
-            # await websocket.send("Done.")
-            api_instance.send_message('{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
-            await websocket.send("Done.")
-            # await websocket.close()
-        elif message == "potato":
-            await websocket.send("POTATOES!")
+        try:
+            data = pickle.loads(message)
+        except TypeError:
+            if message == "qqq":
+                await websocket.send("farewell cruel world!")
+                websocket: ws_server.server.WebSocketServerProtocol
+                api_instance.close_connection()
+                websocket.close()
+                asyncio.get_event_loop().stop()
+            elif message == "test":
+                # await websocket.send("Done.")
+                api_instance.send_message(
+                    '{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
+                await websocket.send("Done.")
+                # await websocket.close()
+            elif message == "potato":
+                await websocket.send("POTATOES!")
+            elif message == "latest":
+                await websocket.send(api_instance.last_received_message)
+            else:
+                await websocket.send(message)
         else:
-            await websocket.send(message)
+            if isinstance(data, shared_utils.Request):
+                api_instance.send_message(data.request())
+                await websocket.send("DONE.")
 
     def run(self):
         print("server start")
