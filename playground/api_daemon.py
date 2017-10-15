@@ -66,14 +66,14 @@ class API(threading.Thread):
         self.socket.run_forever()
         logger.log(level=0, msg="Exiting thread...")
 
-    async def send_message(self, message):
-        self.socket: ws_client.WebSocketApp
-        await self.socket.send(message)
+    def send_message(self, message):
+        # self.socket: ws_client.WebSocketApp
+        self.socket.send(message)
         # await self.socket.close()
 
-    async def close_connection(self):
+    def close_connection(self):
         print("Closing connection...")
-        await self.socket.close()
+        self.socket.close()
 
 
 class Server(threading.Thread):
@@ -86,8 +86,8 @@ class Server(threading.Thread):
     async def on_message(self, websocket, path):
         """
         Handles incoming commands from websocket clients
-        :param websocket:
-        :param path:
+        :param websocket: client websocket connection to respond over
+        :param path: not entirely sure what this is for...
         :return:
         """
         message = await websocket.recv()
@@ -95,14 +95,16 @@ class Server(threading.Thread):
         if message == "qqq":
             await websocket.send("farewell cruel world!")
             websocket: ws_server.server.WebSocketServerProtocol
-            await api_instance.close_connection()
+            api_instance.close_connection()
             websocket.close()
-            print(f"{type(websocket)})")
             asyncio.get_event_loop().stop()
         elif message == "test":
-            await api_instance.send_message('{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
+            # await websocket.send("Done.")
+            api_instance.send_message('{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
             await websocket.send("Done.")
-            websocket.close()
+            # await websocket.close()
+        elif message == "potato":
+            await websocket.send("POTATOES!")
         else:
             await websocket.send(message)
 
@@ -131,3 +133,5 @@ if __name__ == "__main__":
     api_instance.start()
     my_server.join()  # prevent server from terminating ungracefully
     # TODO implement graceful shutdown when commanded over ws
+    # TODO somehow implement unit tests for this project...
+    # TODO replace print() calls with a logger call (makes it thread safe and easier to understand / expand
