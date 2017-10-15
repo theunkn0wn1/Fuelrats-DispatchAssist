@@ -5,9 +5,17 @@ Author: Theunkn0wn1
 """
 
 import asyncio
+import logging
 import threading
 
-import websockets as ws_server
+import websocket as ws_client  # for interacting with the API
+import websockets as ws_server  # for hosting the WS server
+
+
+class Config:
+    api_url = "wss://dev.api.fuelrats.com/?bearer={token}/"
+    # api_url = "wss://api.fuelrats.com/?bearer={token}"
+    token_file = "token.txt"
 
 
 async def launcher(**kwargs):
@@ -29,6 +37,39 @@ class API(threading.Thread):
         super().__init__()
         self.url = url
         self.api_token = api_token
+        self.socket = None
+
+    def on_recv(self, socket, message):
+        print("got message: data is {}".format(message))
+        # socket:websocket.WebSocketApp
+        print("potato")
+        # socket.close()
+
+    def on_open(self, socket):
+        print("connection to API opened")
+        # Api.my_websocket = socket
+
+    def on_error(self, socket, error):
+        print("some error occured!\n{}".format(error))
+
+    def on_close(self, socket):
+        print("####\tsocket closed\t####")
+
+    def run(self):
+        print("thread started")
+        self.socket = ws_client.WebSocketApp(url=self.url.format(token=self.api_token),
+                                             on_close=self.on_close,
+                                             on_error=self.on_error,
+                                             on_message=self.on_recv)
+        self.socket.on_open = self.on_open
+        logger.log(msg="Running server...", level=10)
+        self.socket.run_forever()
+        logger.log(level=0, msg="Exiting thread...")
+
+    async def potato(self):
+        self.socket: ws_client.WebSocketApp
+        await self.socket.send("{}")
+        # await self.socket.close()
 
 
 class Server(threading.Thread):
@@ -43,10 +84,15 @@ class Server(threading.Thread):
         print(f"--> {message}")
         if message == "qqq":
             await websocket.send("farewell cruel world!")
+            await api_intance.potato()
             websocket: ws_server.server.WebSocketServerProtocol
-
+            websocket.close()
             print(f"{type(websocket)})")
             asyncio.get_event_loop().stop()
+        elif message == "test":
+            await api_intance.potato()
+            await websocket.send("Done.")
+            websocket.close()
         else:
             await websocket.send(message)
 
@@ -62,8 +108,15 @@ class Server(threading.Thread):
 
 
 if __name__ == "__main__":
+    logger = logging.getLogger('websockets.server')
+    logger.setLevel(logging.ERROR)
+    logger.addHandler(logging.StreamHandler)
     print("registering Server instance...")
     my_server = Server(port=8700)
     print("starting server instance...")
     my_server.start()
+    print("instance started")
+    print("starting API session...")
+    api_intance = API(Config.api_url, api_token=input())
+    api_intance.start()
     my_server.join()
