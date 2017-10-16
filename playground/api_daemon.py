@@ -5,6 +5,7 @@ Author: Theunkn0wn1
 """
 
 import asyncio
+import json
 import logging
 import pickle  # for sending / receiving cmd data
 import threading
@@ -16,8 +17,8 @@ import playground.daemon_shared as shared_utils
 
 
 class Config:
-    api_url = "wss://dev.api.fuelrats.com/?bearer={token}/"
-    # api_url = "wss://api.fuelrats.com/?bearer={token}"
+    # api_url = "wss://dev.api.fuelrats.com/?bearer={token}/"
+    api_url = "wss://api.fuelrats.com/?bearer={token}/"
     token_file = "token.txt"
 
 
@@ -42,6 +43,16 @@ class API(threading.Thread):
         self.api_token = api_token
         self.socket = None
         self.last_received_message = None
+
+    def subscribe(self, stream):
+        query = {
+            'action': ['stream', 'subscribe'],
+            'id': stream,
+            'data': {},
+            'meta': {}
+        }
+        print(f"subscribing to {json.dumps(query)}")
+        self.socket.send(json.dumps(query))
 
     def on_recv(self, socket, message):
         print("got message: data is {}".format(message))
@@ -109,7 +120,7 @@ class Server(threading.Thread):
                 api_instance.close_connection()
                 websocket.close()
                 asyncio.get_event_loop().stop()
-            elif message == "test":
+            elif message == "fetch":
                 # await websocket.send("Done.")
                 api_instance.send_message(
                     '{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
@@ -119,8 +130,15 @@ class Server(threading.Thread):
                 await websocket.send("POTATOES!")
             elif message == "latest":
                 await websocket.send(api_instance.last_received_message)
+            elif message == "deadbeef":
+                print("sending done...")
+                await websocket.send("Done.")
+                # api_instance.send_message(0xDEADBEEF)
+                print("subscribing...")
+                api_instance.subscribe("0xDEADBEEF")
             else:
                 await websocket.send(message)
+
         else:
             if isinstance(data, shared_utils.Request):
                 api_instance.send_message(data.request())
