@@ -13,7 +13,7 @@ import threading
 import websocket as ws_client  # for interacting with the API
 import websockets as ws_server  # for hosting the WS server
 
-import playground.daemon_shared as shared_utils
+import playground.shared_resources as shared_utils
 
 
 class Config:
@@ -31,6 +31,33 @@ async def launcher(**kwargs):
     my_task = asyncio.ensure_future(kwargs['task'](kwargs['args']))  # define a task, so it can be called
     # a task is different from a coroutine within asyncio... not exactly sure how
     asyncio.wait([my_task])  # awaiting here is blocking, so just call it
+
+
+class Parser:
+    @staticmethod
+    def _parse_updates(data):
+        pass
+
+    @staticmethod
+    def _parse_created(data):
+        id = data['data']['id']  # API ID
+        client = data['data']['attributes']['data']['IRCNick']
+        system = data['data']['attributes']['system']
+        cr = data['data']['attributes']['codeRed']
+        platform = data['data']['attributes']['platform']
+        index = data['data']['attributes']['data']['boardIndex']
+        lang = data['data']['attributes']['data']['langID']
+
+    @staticmethod
+    def parse(raw_json):
+        try:
+            data = json.loads(raw_json)
+            if data['meta']['event'] == "rescueCreated":
+                Parser._parse_created(data=data)
+            elif data['meta']['event'] == "rescueUpdated":
+                Parser._parse_updates(data=data)
+        except Exception:
+            return None
 
 
 class API(threading.Thread):
@@ -54,30 +81,30 @@ class API(threading.Thread):
         print(f"subscribing to {json.dumps(query)}")
         self.socket.send(json.dumps(query))
 
-    def on_recv(self, socket, message):
+    def _on_recv(self, socket, message):
         print("got message: data is {}".format(message))
         self.last_received_message = message
         # socket:websocket.WebSocketApp
         # print("potato")
         # socket.close()
 
-    def on_open(self, socket):
+    def _on_open(self, socket):
         print("connection to API opened")
         # Api.my_websocket = socket
 
-    def on_error(self, socket, error):
+    def _on_error(self, socket, error):
         print("some error occured!\n{}".format(error))
 
-    def on_close(self, socket):
+    def _on_close(self, socket):
         print("####\tsocket closed\t####")
 
     def run(self):
         print("thread started")
         self.socket = ws_client.WebSocketApp(url=self.url.format(token=self.api_token),
-                                             on_close=self.on_close,
-                                             on_error=self.on_error,
-                                             on_message=self.on_recv)
-        self.socket.on_open = self.on_open
+                                             on_close=self._on_close,
+                                             on_error=self._on_error,
+                                             on_message=self._on_recv)
+        self.socket.on_open = self._on_open
         logger.log(msg="Running server...", level=10)
         self.socket.run_forever()
         logger.log(level=0, msg="Exiting thread...")
