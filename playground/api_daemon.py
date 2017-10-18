@@ -84,7 +84,7 @@ class API(threading.Thread):
             'data': {},
             'meta': {}
         }
-        print(f"subscribing to {json.dumps(query)}")
+        print("subscribing to {jdata}".format(jdata=json.dumps(query)))
         self.socket.send(json.dumps(query))
 
     def unsubscribe(self, stream):
@@ -94,7 +94,7 @@ class API(threading.Thread):
             'data': {},
             'meta': {}
         }
-        print(f"subscribing to {json.dumps(query)}")
+        print("subscribing to {jdata}".format(jdata=json.dumps(query)))
         self.socket.send(json.dumps(query))
 
     def _on_recv(self, socket, message):
@@ -153,7 +153,7 @@ class Server(threading.Thread):
         :return:
         """
         message = await websocket.recv()
-        print(f"[INCOMING] --> {message}")
+        print("[INCOMING] --> {message}".format(message=message))
         try:
             data = pickle.loads(message)
         except TypeError:
