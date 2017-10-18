@@ -1,6 +1,7 @@
 import unittest
 
 import dispatch
+import playground.api_daemon as api_daemon
 
 
 class Backend_tests(unittest.TestCase):
@@ -227,6 +228,31 @@ class CommandTesting(unittest.TestCase):
         dispatch.Commands.add_rats(command)
         # data: dispatch.Case
         self.assertEqual(data.rats, expected_rats)
+
+
+class ProxyServerParse(unittest.TestCase):
+    output = None
+
+    def setUp(self):
+        global output
+        test_inputs ='{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}'
+        output = api_daemon.Parser.parse(test_inputs)
+        expected_results = [
+            dispatch.Case(client="jkacina", api_id="8e861212-c990-4ff9-b8e7-3c09da4adfb7",
+                          platform='pc', system="PENCIL SECTOR BV-O A6-4")]
+        # output: dispatch.Case
+
+    def test_parse(self):
+        # test_inputs = ['{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}']
+        # output = api_daemon.Parser.parse(test_inputs[0])
+        self.assertIsNotNone(output)
+        self.assertIsInstance(output, dispatch.Case)
+        self.assertEqual(output.client, "jkacina")
+        self.assertEqual(output.api_id, "8e861212-c990-4ff9-b8e7-3c09da4adfb7")
+        self.assertEqual(output.platform, "pc")
+        self.assertEqual(output.system, "PENCIL SECTOR BV-O A6-4")
+        self.assertFalse(output.cr)
+        self.assertEqual(output.index, 5)
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)

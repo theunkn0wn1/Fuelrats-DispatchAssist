@@ -1,3 +1,4 @@
+import sys
 from functools import wraps  # so decorators don't swallow docstrings
 
 try:
@@ -5,7 +6,21 @@ try:
 except ImportError:
     hc = None
     print("[WARN]: Hexchat module NOT found!")
-
+try:
+    from playground.shared_resources import Case
+except ImportError:
+    if hc is None:
+        raise FileNotFoundError("unable to locate playground.shared_resources")
+    elif hc.get_pluginpref("installDir") is None:
+        print('\0034[CONFIGURATION ERROR]\t[FATAL]: please set a installDir preference using /installDir path/to/dispatch.py, functionality is next to zero until this is done!')
+        Case = None  # that way it at least exists...
+    else:
+        try:
+            sys.path.insert(0, hc.get_pluginpref("installDir"))
+            from playground.shared_resources import Case
+        except ImportError:
+            print("\0034[FATAL]: installDir preference is NOT set correctly! fix me!")
+            Case = None
 from tabulate import tabulate  # for outputting pretty tables
 
 # Globals
@@ -80,108 +95,6 @@ class Translations:
                 }
 
         }
-
-        
-class Case:
-    """
-    Stores a case
-    """
-    def __init__(self, client=None, index=None, cr=False, platform=None, rats=None, system=None, stage=0, language=None,
-                 raw=None):
-        self.client = client
-        self.index = index
-        self.platform = platform
-        self.cr = cr
-        self.rats = rats if rats is not None else []
-        self.stage = stage
-        self.language = language
-        self.wing = False
-        self.has_forwarded = False
-        self.system = system
-        self.raw = raw  # debug symbol
-
-    def Stage(self, status):
-        """
-        Updates client stage
-        :param status: status to set
-        :return:
-        """
-        if isinstance(status, int):
-            self.stage = status
-        elif isinstance(status,str):
-            pass
-
-    def Client(self, client):
-        """
-        Updates client name
-        :param client: new name
-        """
-        if isinstance(client, str):
-            self.client = client
-        else:
-            raise TypeError("client must be of type str")
-
-    def System(self, system):
-        """
-        Changes the Case's current system
-        :param system:str new system
-        """
-        if type(system) is str:
-            self.system = system
-        else:
-            raise TypeError("system must be of type str")
-
-    def Rats(self, rats, mode='add'):
-        if type(rats) is str:
-            if mode is "add":
-                self.rats.append(rats)
-
-            elif mode is "remove":
-                try:
-                    return self.rats.pop(self.rats.index(rats))
-                except ValueError:
-                    log("Case:Rats", "{value} is not a assigned rat!")
-        elif isinstance(rats, list) and mode == "add":
-            for rat in rats:
-                    self.rats.append(rat)
-            # self.add_rats = add_rats
-        elif isinstance(rats, list) and mode is "remove":
-            for rat in rats:
-                i = 0
-                for value in self.rats:
-                    if value == rat:
-                        self.rats.pop(i)
-                    i += 1
-        else:
-            raise TypeError("add_rats must be type str or list. got {} with mode char {}".format(
-                type(rats), mode))
-
-    def Cr(self):
-        self.cr = not self.cr
-
-    def Platform(self, data):
-        if isinstance(data, str):
-            self.platform = data.upper()
-        else:
-            raise TypeError("data expected to be type str")
-
-    def __contains__(self, item):
-        if item is None or not isinstance(item, str):
-            if isinstance(item,int):
-                if item == self.index:
-                    return True
-            else:
-                raise TypeError("got {} expected str".format(type(item)))
-        elif item == self.client:
-            return True
-
-        elif item.lower() == self.platform.lower():
-            return True
-        elif self.rats is not None and item in self.rats:
-            return True
-        else:
-            log("case.__contains__", "value is {} of type {}".format(item, type(item)))
-            return False
 
 
 class Utilities:
@@ -525,6 +438,12 @@ class Tracker:
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
+    @staticmethod
+    @eat_all
+    def set_install_dir(word, word_eol, userdata):
+        print(word_eol[0][1])
+        log("set_install_dir", "setting to {}".format(word_eol[0][1]), True)
+        hc.set_pluginpref("installDir", word_eol[0][1])
 
     @staticmethod
     @eat_all
@@ -1072,6 +991,7 @@ def init():
     log("Init", "Adding hooks!")
     commands = {
         'sys': cmd.system,
+        'installDir': cmd.set_install_dir,
         'potato': cmd.print_hook,
         'test': cmd.run_tests,
         'o2': cmd.oxy_check,

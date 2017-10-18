@@ -1,12 +1,15 @@
 import json
 import threading
+import websocket
+from time import sleep
+import json
+import threading
 from time import sleep
 
 import websocket
 
 # import dispatch
-from dispatch import Case
-
+# from dispatch import Case
 __module_name__ = "api_playground"
 __module_version__ = "0.0.2"
 __module_description__ = "what could possibly go wrong?"
@@ -20,7 +23,7 @@ except ImportError:
 
 class Config:
     # api_url = "wss://dev.api.fuelrats.com/"
-    api_url = "wss://api.fuelrats.com/?bearer={token}"
+    api_url = "wss://dev.api.fuelrats.com/?bearer={token}"
     token_file = "token.txt"
 #
 #
@@ -54,7 +57,6 @@ class Request:
 
 class Api:
     my_websocket = None
-
     @staticmethod
     def on_recv(socket, message):
         print("got message: data is {}".format(message))
@@ -62,7 +64,6 @@ class Api:
         sleep(2)
         print("potato")
         socket.close()
-
     @staticmethod
     def on_open(socket):
         print("connection to API opened")

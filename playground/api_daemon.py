@@ -17,8 +17,8 @@ import playground.shared_resources as shared_utils
 
 
 class Config:
-    # api_url = "wss://dev.api.fuelrats.com/?bearer={token}/"
-    api_url = "wss://api.fuelrats.com/?bearer={token}/"
+    api_url = "wss://dev.api.fuelrats.com/?bearer={token}/"
+    # api_url = "wss://api.fuelrats.com/?bearer={token}/"
     token_file = "token.txt"
 
 
@@ -40,22 +40,28 @@ class Parser:
 
     @staticmethod
     def _parse_created(data):
-        id = data['data']['id']  # API ID
-        client = data['data']['attributes']['data']['IRCNick']
-        system = data['data']['attributes']['system']
-        cr = data['data']['attributes']['codeRed']
-        platform = data['data']['attributes']['platform']
-        index = data['data']['attributes']['data']['boardIndex']
-        lang = data['data']['attributes']['data']['langID']
+        try:
+            api_id = data['data']['id']  # API ID
+            client = data['data']['attributes']['data']['IRCNick']  # as their IRC nickname can differ from their name
+            system = data['data']['attributes']['system']  # fetch the system
+            cr = data['data']['attributes']['codeRed']  # code red status
+            platform = data['data']['attributes']['platform']  # platform
+            index = data['data']['attributes']['data']['boardIndex']  # where they are on the board
+            lang = data['data']['attributes']['data']['langID']  # and their language
+            return shared_utils.Case(client=client, index=index, cr=cr, platform=platform, system=system,
+                                     language=lang, api_id=api_id)
+        except IndexError   :
+            print("[CRITICAL]: Case creation failed, invalid data")
+            return None  # default state, if parsing fails for some reason
 
     @staticmethod
     def parse(raw_json):
         try:
             data = json.loads(raw_json)
             if data['meta']['event'] == "rescueCreated":
-                Parser._parse_created(data=data)
+                return Parser._parse_created(data=data)
             elif data['meta']['event'] == "rescueUpdated":
-                Parser._parse_updates(data=data)
+                return Parser._parse_updates(data=data)
         except Exception:
             return None
 
@@ -69,7 +75,7 @@ class API(threading.Thread):
         self.url = url
         self.api_token = api_token
         self.socket = None
-        self.last_received_message = None
+        self.messages_since_last_call = {}
 
     def subscribe(self, stream):
         query = {
@@ -81,9 +87,19 @@ class API(threading.Thread):
         print(f"subscribing to {json.dumps(query)}")
         self.socket.send(json.dumps(query))
 
+    def unsubscribe(self, stream):
+        query = {
+            'action': ['stream', 'subscribe'],
+            'id': stream,
+            'data': {},
+            'meta': {}
+        }
+        print(f"subscribing to {json.dumps(query)}")
+        self.socket.send(json.dumps(query))
+
     def _on_recv(self, socket, message):
         print("got message: data is {}".format(message))
-        self.last_received_message = message
+        self.messages_since_last_call = message
         # socket:websocket.WebSocketApp
         # print("potato")
         # socket.close()
@@ -115,7 +131,7 @@ class API(threading.Thread):
         # await self.socket.close()
 
     def get_last_message(self):
-        return self.last_received_message
+        return self.messages_since_last_call
 
     def close_connection(self):
         print("Closing connection...")
@@ -156,7 +172,7 @@ class Server(threading.Thread):
             elif message == "potato":
                 await websocket.send("POTATOES!")
             elif message == "latest":
-                await websocket.send(api_instance.last_received_message)
+                await websocket.send(api_instance.messages_since_last_call)
             elif message == "deadbeef":
                 print("sending done...")
                 await websocket.send("Done.")
