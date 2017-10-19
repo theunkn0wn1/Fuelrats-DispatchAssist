@@ -242,6 +242,24 @@ class ProxyServerParse(unittest.TestCase):
                           platform='pc', system="PENCIL SECTOR BV-O A6-4")]
         # output: dispatch.Case
 
+    def test_index(self):
+        self.assertEqual(output.index, 5)
+
+    def test_cr(self):
+        self.assertFalse(output.cr)
+
+    def test_client(self):
+        self.assertEqual(output.client, "jkacina")
+
+    def test_id(self):
+        self.assertEqual(output.api_id, "8e861212-c990-4ff9-b8e7-3c09da4adfb7")
+
+    def test_system(self):
+        self.assertEqual(output.system, "PENCIL SECTOR BV-O A6-4")
+
+    def test_platform(self):
+        self.assertEqual(output.platform, 'pc')
+
     def test_parse(self):
         # test_inputs = ['{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}']
         # output = api_daemon.Parser.parse(test_inputs[0])

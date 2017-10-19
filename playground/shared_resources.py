@@ -43,7 +43,7 @@ class Case:
         """
         if isinstance(status, int):
             self.stage = status
-        elif isinstance(status,str):
+        elif isinstance(status, str):
             pass
 
     def Client(self, client):

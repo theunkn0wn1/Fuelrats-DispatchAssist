@@ -50,7 +50,7 @@ class Parser:
             lang = data['data']['attributes']['data']['langID']  # and their language
             return shared_utils.Case(client=client, index=index, cr=cr, platform=platform, system=system,
                                      language=lang, api_id=api_id)
-        except IndexError   :
+        except IndexError:
             print("[CRITICAL]: Case creation failed, invalid data")
             return None  # default state, if parsing fails for some reason
 
@@ -99,6 +99,7 @@ class API(threading.Thread):
 
     def _on_recv(self, socket, message):
         print("got message: data is {}".format(message))
+        # if message[]
         self.messages_since_last_call = message
         # socket:websocket.WebSocketApp
         # print("potato")
@@ -116,6 +117,7 @@ class API(threading.Thread):
 
     def run(self):
         print("thread started")
+        print("using {} as URL".format(self.url))
         self.socket = ws_client.WebSocketApp(url=self.url.format(token=self.api_token),
                                              on_close=self._on_close,
                                              on_error=self._on_error,
@@ -159,7 +161,7 @@ class Server(threading.Thread):
         except TypeError:
             if message == "qqq":
                 await websocket.send("farewell cruel world!")
-                websocket: ws_server.server.WebSocketServerProtocol
+                # websocket: ws_server.server.WebSocketServerProtocol
                 api_instance.close_connection()
                 websocket.close()
                 asyncio.get_event_loop().stop()
@@ -173,12 +175,16 @@ class Server(threading.Thread):
                 await websocket.send("POTATOES!")
             elif message == "latest":
                 await websocket.send(api_instance.messages_since_last_call)
-            elif message == "deadbeef":
+            elif message == "deadbeef":  # ratracker ... doesn't do anything right now
                 print("sending done...")
                 await websocket.send("Done.")
                 # api_instance.send_message(0xDEADBEEF)
                 print("subscribing...")
                 api_instance.subscribe("0xDEADBEEF")
+            elif message[:4] == "send":
+                print("sending message {}".format(message[5:]))
+                await websocket.send("Done.")
+                api_instance.send_message(message=message[5:])
             else:
                 await websocket.send(message)
 
@@ -200,8 +206,8 @@ class Server(threading.Thread):
 
 if __name__ == "__main__":
     logger = logging.getLogger('websockets.server')
-    logger.setLevel(logging.ERROR)
-    logger.addHandler(logging.StreamHandler)
+    logger.setLevel(logging.DEBUG)
+    # logger.addHandler(logging.StreamHandler)
     print("registering Server instance...")
     my_server = Server(port=8700)
     print("starting server instance...")
