@@ -455,15 +455,39 @@ class Commands:
         :param userdata:
         :return:
         """
+        client = None
+        system = None
+        platform = None
         try:
             index = int(word[1])
         except IndexError:
-            log("new_case", "Not enough arguments. expected case_number")
+            log("new_case", "Not enough arguments. expected case number", True)
         except TypeError:
-            log("new_case", "{} cannot be converted to a number, please give me a number.".format(word[1]))
+            log("new_case", "{} cannot be converted to a number, please give me a number.".format(word[1]), True)
         else:
-            log("new_case", "generating stub case with index {}...".format(index), True)
-            Tracker.append(data=Case(index=index))
+            try:
+                client = word[2]
+            except IndexError:
+                log("new_case", "No further elements, assuming stub implementation...")
+                log("new_case", "generating stub case with index {}...".format(index), True)
+                Tracker.append(data=Case(index=index))
+            else:
+                log("new_case", "Got client name {}. Looking for platform next...".format(client))
+                try:
+                    platform = word[3]
+                except IndexError:
+                    log("new_case", "no platform data... generating stub with client name only...")
+                    Tracker.append(data=Case(index=index, client=client))
+                else:
+                    try:
+                        system = word_eol[0][4]
+                    except IndexError:
+                        print(word_eol)
+                        log("new_case", "no system data.. generating stub with client name and platform...")
+                        Tracker.append(data=Case(index=index, client=client, platform=platform))
+                    else:
+                        log("new_case", "generating stub with client, platform,  and system...", True)
+                        Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
 
     @staticmethod
     @eat_all

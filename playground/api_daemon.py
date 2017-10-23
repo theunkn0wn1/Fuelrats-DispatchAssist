@@ -100,7 +100,7 @@ class API(threading.Thread):
     def _on_recv(self, socket, message):
         print("got message: data is {}".format(message))
         # if message[]
-        self.messages_since_last_call = message
+        self.messages_since_last_call.update({len(self.messages_since_last_call)+1, message})
         # socket:websocket.WebSocketApp
         # print("potato")
         # socket.close()
@@ -133,7 +133,9 @@ class API(threading.Thread):
         # await self.socket.close()
 
     def get_last_message(self):
-        return self.messages_since_last_call
+        msg = self.messages_since_last_call
+        self.messages_since_last_call = {}  # flush
+        return msg
 
     def close_connection(self):
         print("Closing connection...")
@@ -159,22 +161,27 @@ class Server(threading.Thread):
         try:
             data = pickle.loads(message)
         except TypeError:
+            # data is not pickeled, data is of type str and is not encoded. Look for command input...
             if message == "qqq":
                 await websocket.send("farewell cruel world!")
                 # websocket: ws_server.server.WebSocketServerProtocol
                 api_instance.close_connection()
                 websocket.close()
                 asyncio.get_event_loop().stop()
+
             elif message == "fetch":
                 # await websocket.send("Done.")
                 api_instance.send_message(
                     '{"action": ["rescues", "read"], "status": {"$not": "closed"}, "data": {}, "meta": {}}')
                 await websocket.send("Done.")
                 # await websocket.close()
+
             elif message == "potato":
                 await websocket.send("POTATOES!")
+
             elif message == "latest":
-                await websocket.send(api_instance.messages_since_last_call)
+                await websocket.send(api_instance.get_last_message())
+
             elif message == "deadbeef":  # ratracker ... doesn't do anything right now
                 print("sending done...")
                 await websocket.send("Done.")
@@ -196,6 +203,7 @@ class Server(threading.Thread):
     def run(self):
         print("server start")
         loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         self.server = ws_server.serve(self.on_message, 'localhost', self.port)
         # asyncio.get_event_loop().run_until_complete(self.server)
         # asyncio.get_event_loop().run_forever()
