@@ -476,7 +476,7 @@ class Commands:
                 try:
                     platform = word[3]
                 except IndexError:
-                    log("new_case", "no platform data... generating stub with client name only...")
+                    log("new_case", "no platform data... generating stub with client name only...", True)
                     Tracker.append(data=Case(index=index, client=client))
                 else:
                     try:
@@ -782,7 +782,7 @@ class Commands:
         print("len(X) = {}".format(len(x)))
         if len(x) < 1:
             log('stage', 'expected format /stage {index} {mode} {param}')
-        elif len(x) == 3: # no extra arguments
+        elif len(x) == 3:  # no extra arguments
             pass
         else:
             mode = x[2]

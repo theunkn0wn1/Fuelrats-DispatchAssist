@@ -75,7 +75,7 @@ class API(threading.Thread):
         self.url = url
         self.api_token = api_token
         self.socket = None
-        self.messages_since_last_call = {}
+        self.messages_since_last_call = []
 
     def subscribe(self, stream):
         query = {
@@ -100,7 +100,7 @@ class API(threading.Thread):
     def _on_recv(self, socket, message):
         print("got message: data is {}".format(message))
         # if message[]
-        self.messages_since_last_call.update({len(self.messages_since_last_call)+1, message})
+        self.messages_since_last_call.append(message)
         # socket:websocket.WebSocketApp
         # print("potato")
         # socket.close()
@@ -180,7 +180,8 @@ class Server(threading.Thread):
                 await websocket.send("POTATOES!")
 
             elif message == "latest":
-                await websocket.send(api_instance.get_last_message())
+                data = pickle.dumps(api_instance.get_last_message())
+                await websocket.send(data=data)
 
             elif message == "deadbeef":  # ratracker ... doesn't do anything right now
                 print("sending done...")
