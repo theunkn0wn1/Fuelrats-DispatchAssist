@@ -510,6 +510,7 @@ class Commands:
     @staticmethod
     @eat_all
     def client(word, word_eol, userdata):
+        index=None  # just in case the try itself fails before its assigned
         try:
             index = int(word[1])
             case = Tracker.get_case(value=index)
@@ -518,6 +519,8 @@ class Commands:
 
         except ValueError:
             log("client_name", "\0034 ERROR: {} is not a number!".format(word[1]), True)
+        except AttributeError:
+            log("client_name", "\0034 unable to find case {}".format(index))
         except IndexError:
             log("client", "\0033 Expected form: /client case_number client_irc_name", True)
 
@@ -778,39 +781,45 @@ class Commands:
     @eat_all
     def stage(x, y, z):
         # todo make invalid argument count not break things
-        event_args = [None]*3
-        print("len(X) = {}".format(len(x)))
+        event_args = []
+        print("len(x) = {}".format(len(x)))
+        print("x = {}".format(x))
         if len(x) < 1:
             log('stage', 'expected format /stage {index} {mode} {param}')
-        elif len(x) == 3:  # no extra arguments
-            pass
+        # elif len(x) == 3:  # no extra arguments
+        #     pass
         else:
             mode = x[2]
             log("stage", "mode = {} and is of type {}".format(mode, type(mode)))
             cid = int(x[1])
-            try:  # if we have extra args
-                event_args[0] = x[3]
-                event_args[1] = x[4]
-                event_args[2] = x[5]
-                log("\0034stage\003", "event_args={}".format(event_args))
-            except IndexError:  # but less than 3
-                try:
-                    log("stage", "two extra arguments")
-                    event_args[0] = x[3]
-                    event_args[1] = x[4]
-                except IndexError:  # only one extra argument
-                    try:
-                        log("stage", "only one extra argument?")
-                        event_args[0] = x[3]
-                    except Exception as e:  # erm.. well this was not planned for
-                        log("stage", "\0034Well something went very wrong.", True)
-                        log("stage", e, True)  # TODO  investigate a crash in here
-            log("stage", "=======================")
-            log("stage event_args=", event_args)
-            if StageManager.do_stage(cid, mode, alpha=event_args[0], beta=event_args[1], gamma=event_args[2]):
-                pass
-            else:
-                log("stage", 'unknown mode {}'.format(mode))
+            if len(x)>3: # extra arguments
+                for val in x[2:]:
+                    event_args.append(val)
+            else: # no extra arguments
+                event_args = [None]*3  # prevent index out-of-bounds error
+            # try:  # if we have extra args
+            #     event_args[0] = x[3]
+            #     event_args[1] = x[4]
+            #     event_args[2] = x[5]
+            #     log("\0034stage\003", "event_args={}".format(event_args))
+            # except IndexError:  # but less than 3
+            #     try:
+            #         log("stage", "two extra arguments")
+            #         event_args[0] = x[3]
+            #         event_args[1] = x[4]
+            #     except IndexError:  # only one extra argument
+            #         try:
+            #             log("stage", "only one extra argument?")
+            #             event_args[0] = x[3]
+            #         except Exception as e:  # erm.. well this was not planned for
+            #             log("stage", "\0034Well something went very wrong.", True)
+            #             log("stage", e, True)  # TODO  investigate a crash in here
+        log("stage", "=======================")
+        log("stage event_args=", event_args)
+        if StageManager.do_stage(cid, mode, alpha=event_args[0], beta=event_args[1], gamma=event_args[2]):
+            pass
+        else:
+            log("stage", 'unknown mode {}'.format(mode))
         # log("stage", 'current stage is {stage}'.format())
 
 

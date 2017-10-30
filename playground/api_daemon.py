@@ -134,7 +134,7 @@ class API(threading.Thread):
 
     def get_last_message(self):
         msg = self.messages_since_last_call
-        self.messages_since_last_call = {}  # flush
+        self.messages_since_last_call = []  # flush
         return msg
 
     def close_connection(self):
@@ -228,4 +228,4 @@ if __name__ == "__main__":
     my_server.join()  # prevent server from terminating ungracefully
     # TODO implement graceful shutdown when commanded over ws
     # TODO somehow implement unit tests for this project...
-    # TODO replace print() calls with a logger call (makes it thread safe and easier to understand / expand
+    # TODO replace print() calls with a logger call (makes it thread safe and easier to understand / expand)
