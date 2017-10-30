@@ -786,6 +786,7 @@ class Commands:
         print("x = {}".format(x))
         if len(x) < 1:
             log('stage', 'expected format /stage {index} {mode} {param}')
+            return
         # elif len(x) == 3:  # no extra arguments
         #     pass
         else:
@@ -797,23 +798,7 @@ class Commands:
                     event_args.append(val)
             else: # no extra arguments
                 event_args = [None]*3  # prevent index out-of-bounds error
-            # try:  # if we have extra args
-            #     event_args[0] = x[3]
-            #     event_args[1] = x[4]
-            #     event_args[2] = x[5]
-            #     log("\0034stage\003", "event_args={}".format(event_args))
-            # except IndexError:  # but less than 3
-            #     try:
-            #         log("stage", "two extra arguments")
-            #         event_args[0] = x[3]
-            #         event_args[1] = x[4]
-            #     except IndexError:  # only one extra argument
-            #         try:
-            #             log("stage", "only one extra argument?")
-            #             event_args[0] = x[3]
-            #         except Exception as e:  # erm.. well this was not planned for
-            #             log("stage", "\0034Well something went very wrong.", True)
-            #             log("stage", e, True)  # TODO  investigate a crash in here
+
         log("stage", "=======================")
         log("stage event_args=", event_args)
         if StageManager.do_stage(cid, mode, alpha=event_args[0], beta=event_args[1], gamma=event_args[2]):
@@ -950,8 +935,18 @@ class StageManager:
         :returns boolean success
         """
         log("do_stage", "\0034 vars are {} {} {}".format(alpha, beta, gamma))
-        log("do_stage", "mode is of type {} with data".format(type(mode)))
-        print(mode)
+        log("do_stage", "mode is of type {} with data {}".format(type(mode), mode))
+
+        if isinstance(mode, tuple):
+            log("do_stage","mode is a tuple for some reason, attempting conversion...")
+            try:
+                mode = str(mode[0])
+            except Exception as e:
+                log("do_stage", "unable to convert, error is {}".format(e))
+            else:
+                log("do_stage", "conversion completed. new data is \"{}\"".format(mode))
+
+        # print("mode = {}".format(mode))
         global database
         steps = {0: StageManager.check_o2,
                  1: StageManager.friend_request,
@@ -1016,6 +1011,8 @@ class StageManager:
             log("do_stage:add", "adding add_rats {},{},{} to {}".format(alpha, beta, gamma, key))  # TODO make work with kwargs
             StageManager.add_rats(case_object, [alpha, beta, gamma])
             return True
+        else:
+            return False
 
 
 def init():
