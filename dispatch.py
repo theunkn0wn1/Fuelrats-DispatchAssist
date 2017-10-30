@@ -73,7 +73,7 @@ class Translations:
         """Container for English facts"""
         fr = {
             'pre': "Please add the following rats to your friends list: {rats}",
-            'fact': "!{platform}fr {client}"
+            'fact': "!{platform}fr-{lang} {client}"
         }
         wr = {
             'pre': "Now, please invite your rats to the wing.",
@@ -839,11 +839,15 @@ class StageManager:
         # case_object: Case  # todo remove this line
         platform = case_object.platform
         client = case_object.client
-        if case_object.language.lower() == 'enus':
+        if case_object.language is None or case_object.language.lower() == 'enus':
             # StageManager.say(Translations.English.fr['pre'].format(rats=case_object['rats']))  # TODO make work
             log("friend_request", "triggered!", True)
             StageManager.go(case_object, None)
-            StageManager.say(Translations.English.fr['fact'].format(client=client, platform=platform))
+            StageManager.say(Translations.English.fr['fact'].format(
+                    client=client,
+                    platform=platform,
+                    language="en" if case_object.language is None else case_object.language))# otherwise we get None's in output (BAD!)
+
         log("friend_request", "Client {client} is on platform {platform} with lang {lang}"
             .format(client=client, platform=platform, lang=case_object.language), True)
         # TODO: implement other languages, add option to outsource facts to Mecha
@@ -885,6 +889,11 @@ class StageManager:
             client=case_object.client))
 
     @staticmethod
+    def prep(case_object):
+        StageManager.say("Great, please let us know \002\037AT ONCE\002\037 if that timer makes itself known.")
+        StageManager.say("!prep {}".format(case_object.client))
+
+    @staticmethod
     def add_rats(case_object, rats):
         """Adds up to 3 rats to a given case
         :param case_object: case to update
@@ -907,21 +916,24 @@ class StageManager:
         if event_args is not None:
             StageManager.add_rats(case_object, event_args)
         rats = case_object.rats if case_object.rats is not None else []  # prevent index errors (hopefully)...
-        quantity_none = 0
-        for rat in rats:
-            if rat is None:
-                quantity_none += 1
-        if quantity_none == 0:
-            StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
-        elif quantity_none == 1:
-            StageManager.say(
-                "Please add {alpha},{beta} to your friends list.".format(alpha=rats[0], beta=rats[1]))
-        elif quantity_none == 2:
-            StageManager.say(
-                "Please add {alpha} to your friends list.".format(alpha=rats[0]))
-            StageManager.say(
-                "!{platform}fr".format(platform=case_object['platform'])
-            )
+        if rats is not None and rats != []:
+            StageManager.say("please add the following rat(s) to your friends list: {}".format(rats))
+            StageManager.say("!{platform}fr-{lang}".format(platform=case_object.platform,lang=case_object.language if case_object.language is not None else "en"))
+        #quantity_none = 0
+        # for rat in rats:
+        #     if rat is None:
+        #         quantity_none += 1
+        # if quantity_none == 0:
+        #     StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
+        # elif quantity_none == 1:
+        #     StageManager.say(
+        #         "Please add {alpha},{beta} to your friends list.".format(alpha=rats[0], beta=rats[1]))
+        # elif quantity_none == 2:
+        #     StageManager.say(
+        #         "Please add {alpha} to your friends list.".format(alpha=rats[0]))
+        #     StageManager.say(
+        #         "!{platform}fr".format(platform=case_object['platform'])
+        #     )
 
     @staticmethod
     @eat_all
@@ -949,11 +961,11 @@ class StageManager:
         # print("mode = {}".format(mode))
         global database
         steps = {0: StageManager.check_o2,
-                 1: StageManager.friend_request,
-                 2: StageManager.wing_invite,
-                 3: StageManager.wing_beacon,
+                 1: StageManager.prep,
+                 2: StageManager.friend_request,
+                 3: StageManager.wing_invite,
+                 4: StageManager.wing_beacon,
                  }
-        # case_object: Case # todo comment line out (unrecoverable syntax error because hexchat)
         try:
             case_object = database.get(int(key))
         except Exception as e:

@@ -67,7 +67,7 @@ class Case:
             raise TypeError("system must be of type str")
 
     def Rats(self, rats, mode='add'):
-        if type(rats) is str:
+        if isinstance(rats, str):
             if mode is "add":
                 self.rats.append(rats)
 
