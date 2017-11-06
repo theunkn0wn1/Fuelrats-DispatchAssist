@@ -1,4 +1,5 @@
 import sys
+from abc import ABC, abstractmethod
 from functools import wraps  # so decorators don't swallow docstrings
 
 try:
@@ -28,6 +29,8 @@ __module_name__ = "dispatch"
 __module_version__ = "0.0.1"
 __module_description__ = "Assist with automating trivial FuelRat dispatch interactions"
 database = {}
+registered_commands = {} # slash commands
+registered_stage_commands = {}  # stage commands
 verbose_logging = False  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
@@ -806,17 +809,64 @@ class Commands:
         else:
             log("stage", 'unknown mode {}'.format(mode))
         # log("stage", 'current stage is {stage}'.format())
+class CommandBase(ABC):
+    """
+    Abstract for defining stage commands
+    """
+    # registered_commands = []
 
+    @staticmethod
+    def registerCommand(name, func,alias=None):
+        global registered_commands
+        new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
+        registered_commands.update(new_entry)
+
+    @staticmethod
+    def getCommand(name):
+        global registered_commands
+        retCmd = registered_commands[name]['func']
+        if retCmd is None:
+            for rcmd in registered_commands:
+                if name in rcmd['alias']:
+                    return rcmd['func']
+        else:
+            return retCmd
+    @abstractmethod
+    def func(self, **kwargs):
+        """Command action"""
+        pass
+
+class stageBase(CommandBase):
+    """
+    varient of commandBase to register stageCommands
+    """
+    @staticmethod
+    def getCommand(name):
+        pass
+    @staticmethod
+    def registerCommand(name, func,alias=None):
+        pass
 
 class StageManager:
     """Tracks client stage and responds accordingly"""
-    @staticmethod
-    def say(message, colour=None):
-        """Output a message into the channel (*this is server-side!*)"""
-        if colour is None:
-            hc.command("say {msg}".format(msg=message))
-        else:
-            hc.command("say \003{color} {msg}".format(color=colour, msg=message))
+    class Say(stageBase):
+        """
+        Print a message to the channel, with optional colour
+        """
+        def __init__(self, aliases=None):
+            super().__init__()
+            self.name = "Say"
+            super().registerCommand(self.name, self, alias="say")
+
+        def func(self, **kwargs):
+            """Output a message into the channel (*this is server-side!*)"""
+            if hc is not None:
+                if kwargs['colour'] is None:
+                    hc.command("say {msg}".format(msg=kwargs['message']))
+                else:
+                    hc.command("say \003{color} {msg}".format(color=kwargs['colour'], msg=kwargs['message']))
+            else:
+                print("say {msg}".format(msg=kwargs['message']))
 
     @staticmethod
     def change_platform(key, platform, case_object):
@@ -839,13 +889,15 @@ class StageManager:
         # case_object: Case  # todo remove this line
         platform = case_object.platform
         client = case_object.client
-        if case_object.language is None or case_object.language.lower() == 'enus':
+
             # StageManager.say(Translations.English.fr['pre'].format(rats=case_object['rats']))  # TODO make work
-            log("friend_request", "triggered!", True)
-            StageManager.go(case_object, None)
+        log("friend_request", "triggered!", True)
+        StageManager.go(case_object, None)
+        if case_object.language is None or case_object.language.lower() == 'en':
             StageManager.say(Translations.English.fr['fact'].format(
                     client=client,
                     platform=platform,
+                    rats=case_object.rats,
                     language="en" if case_object.language is None else case_object.language))# otherwise we get None's in output (BAD!)
 
         log("friend_request", "Client {client} is on platform {platform} with lang {lang}"
@@ -919,21 +971,6 @@ class StageManager:
         if rats is not None and rats != []:
             StageManager.say("please add the following rat(s) to your friends list: {}".format(rats))
             StageManager.say("!{platform}fr-{lang}".format(platform=case_object.platform,lang=case_object.language if case_object.language is not None else "en"))
-        #quantity_none = 0
-        # for rat in rats:
-        #     if rat is None:
-        #         quantity_none += 1
-        # if quantity_none == 0:
-        #     StageManager.say("Please add {alpha},{beta},{gamma} to your friends list.".format(alpha=rats[0], beta=rats[1], gamma=rats[2]))
-        # elif quantity_none == 1:
-        #     StageManager.say(
-        #         "Please add {alpha},{beta} to your friends list.".format(alpha=rats[0], beta=rats[1]))
-        # elif quantity_none == 2:
-        #     StageManager.say(
-        #         "Please add {alpha} to your friends list.".format(alpha=rats[0]))
-        #     StageManager.say(
-        #         "!{platform}fr".format(platform=case_object['platform'])
-        #     )
 
     @staticmethod
     @eat_all
@@ -946,6 +983,7 @@ class StageManager:
         :param mode: dictate which method to execute
         :returns boolean success
         """
+
         log("do_stage", "\0034 vars are {} {} {}".format(alpha, beta, gamma))
         log("do_stage", "mode is of type {} with data {}".format(type(mode), mode))
 

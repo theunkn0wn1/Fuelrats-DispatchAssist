@@ -229,6 +229,15 @@ class CommandTesting(unittest.TestCase):
         # data: dispatch.Case
         self.assertEqual(data.rats, expected_rats)
 
+    def test_say(self):
+        dispatch.StageManager.Say()  # initialize
+        self.assertIsNotNone(dispatch.registered_commands)
+        command = dispatch.registered_commands.get('Say')
+        # command: dispatch.CommandBase
+        self.assertIsNotNone(command)
+        print(command)
+        command['cmd'].func(message="test")
+
 
 class ProxyServerParse(unittest.TestCase):
     output = None

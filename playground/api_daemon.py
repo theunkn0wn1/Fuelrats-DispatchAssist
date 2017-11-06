@@ -226,6 +226,5 @@ if __name__ == "__main__":
     api_instance = API(Config.api_url, api_token=input())
     api_instance.start()
     my_server.join()  # prevent server from terminating ungracefully
-    # TODO implement graceful shutdown when commanded over ws
     # TODO somehow implement unit tests for this project...
     # TODO replace print() calls with a logger call (makes it thread safe and easier to understand / expand)
