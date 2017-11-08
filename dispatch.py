@@ -62,7 +62,9 @@ class CommandBase(ABC):
         global registered_commands
         new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
         registered_commands.update(new_entry)
-
+    @classmethod
+    def __register_children(cls):
+        pass
 
     @classmethod
     def getChildren(cls):
@@ -591,7 +593,7 @@ class Commands:
                     case.Cr()
 
         def func(self, *args,**kwargs):
-            self.code_red(args, kwargs)
+            self.code_red(*args, **kwargs)
 
 
 

@@ -200,7 +200,7 @@ class CommandTesting(unittest.TestCase):
         command = dispatch.CommandBase.getCommand('cr')()
         self.assertIsNotNone(data)
         self.assertFalse(data.cr)
-        command.func(word=["cr", "64"], word_eol=([]), userdata=None)
+        command.func(word=["cr", "64"], word_eol=[], userdata=None)
         self.assertTrue(data.cr)
 
     def test_platform_valid(self):
