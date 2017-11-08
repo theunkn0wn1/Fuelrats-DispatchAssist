@@ -71,13 +71,13 @@ class CommandBase(ABC):
     @classmethod
     def getCommand(cls, name):
         for command in cls.__subclasses__():
-            if command.name== name:
+            if command.name== name or name in command.alias:
                 return command
         return None
 
 
     @abstractmethod
-    def func(self, **kwargs):
+    def func(self, *args,**kwargs):
         """Command action"""
         pass
 
@@ -88,19 +88,6 @@ class stageBase(CommandBase):
     varient of commandBase to register stageCommands
     """
     registered_commands = {}
-
-
-    @classmethod
-    def getCommand(cls, name):
-        global registered_stage_commands
-        retCmd = registered_stage_commands[name]['func']
-        if retCmd is None:
-            for rcmd in registered_stage_commands:
-                if name in rcmd['alias']:
-                    return rcmd['func']
-        else:
-            return retCmd
-
 
     @classmethod
     def _registerCommand(cls, name, func, alias=None):
@@ -115,15 +102,15 @@ class stageBase(CommandBase):
         new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
         cls.registered_commands.update(new_entry)
     @abstractmethod
-    def __init__(self):
-        self.before = None
-        self.after = None
+    def func(self, *args,**kwargs):
+        pass
+
 # Wrappers
 
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
     @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
-    def wrapper(arg,*args, **kwargs):  # todo: learn why this doesn't munch arguments
+    def wrapper(arg,*args, **kwargs):
         wrapped_function(arg, args, kwargs)
         if hc is not None:
             return hc.EAT_ALL
@@ -511,73 +498,73 @@ class Tracker:
 
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
-    @staticmethod
-    @eat_all
-    def set_install_dir(word, word_eol, userdata):
-        print(word_eol[0][1])
-        log("set_install_dir", "setting to {}".format(word_eol[0][1]), True)
-        hc.set_pluginpref("installDir", word_eol[0][1])
+
 
     class SetInstallDirectory(CommandBase):
-        def func(self, *args):
-            Commands.set_install_dir(args)
-        name = "setInstallDir"
+        @eat_all
+        def set_install_dir(self, word, word_eol, userdata):
+            print(word_eol[0][1])
+            log("set_install_dir", "setting to {}".format(word_eol[0][1]), True)
+            hc.set_pluginpref("installDir", word_eol[0][1])
 
-    @staticmethod
-    @eat_all
-    def new_case(word, word_eol, userdata):
-        """
-        Create a new stub case
-        :param word: space delimenated args
-        :param word_eol:
-        :param userdata:
-        :return:
-        """
-        client = None
-        system = None
-        platform = None
-        try:
-            index = int(word[1])
-        except IndexError:
-            log("new_case", "Not enough arguments. expected case number", True)
-        except TypeError:
-            log("new_case", "{} cannot be converted to a number, please give me a number.".format(word[1]), True)
-        else:
-            try:
-                client = word[2]
-            except IndexError:
-                log("new_case", "No further elements, assuming stub implementation...")
-                log("new_case", "generating stub case with index {}...".format(index), True)
-                Tracker.append(data=Case(index=index))
-            else:
-                log("new_case", "Got client name {}. Looking for platform next...".format(client))
-                try:
-                    platform = word[3]
-                except IndexError:
-                    log("new_case", "no platform data... generating stub with client name only...", True)
-                    Tracker.append(data=Case(index=index, client=client))
-                else:
-                    try:
-                        system = word_eol[0][4]
-                    except IndexError:
-                        print(word_eol)
-                        log("new_case", "no system data.. generating stub with client name and platform...")
-                        Tracker.append(data=Case(index=index, client=client, platform=platform))
-                    else:
-                        log("new_case", "generating stub with client, platform,  and system...", True)
-                        Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
+        def func(self, *args):
+            self.set_install_dir(args)
+        name = "setInstallDir"
+        alias = ['install', 'setup']
 
     class NewCase(CommandBase):
+        """
+        Generates a new case
+        """
+        name = "new"
+        alias = ['create']
 
+        @eat_all
+        def new_case(self, word, word_eol, userdata=None):
+            """
+            Create a new stub case
+            :param word: space delimenated args
+            :param word_eol:
+            :param userdata:
+            :return:
+            """
+            client = None
+            system = None
+            platform = None
+            try:
+                index = int(word[1])
+            except IndexError:
+                log("new_case", "Not enough arguments. expected case number", True)
+            except TypeError:
+                log("new_case", "{} cannot be converted to a number, please give me a number.".format(word[1]), True)
+            else:
+                try:
+                    client = word[2]
+                except IndexError:
+                    log("new_case", "No further elements, assuming stub implementation...")
+                    log("new_case", "generating stub case with index {}...".format(index), True)
+                    Tracker.append(data=Case(index=index))
+                else:
+                    log("new_case", "Got client name {}. Looking for platform next...".format(client))
+                    try:
+                        platform = word[3]
+                    except IndexError:
+                        log("new_case", "no platform data... generating stub with client name only...", True)
+                        Tracker.append(data=Case(index=index, client=client))
+                    else:
+                        try:
+                            system = word_eol[0][4]
+                        except IndexError:
+                            print(word_eol)
+                            log("new_case", "no system data.. generating stub with client name and platform...")
+                            Tracker.append(data=Case(index=index, client=client, platform=platform))
+                        else:
+                            log("new_case", "generating stub with client, platform,  and system...", True)
+                            Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
 
+        def func(self,*args, **kwargs):
+            self.new_case(args, kwargs)
 
-        def func(self, **kwargs):
-            Commands.new_case(kwargs)
-
-        def __init__(self) -> None:
-            self.name = "new"
-            super()._registerCommand(self.name, func=self.func  )
-            # super().__init__()
 
     @staticmethod
     @eat_all
@@ -903,14 +890,9 @@ class StageManager:
         """
         Print a message to the channel, with optional colour
         """
-        def __init__(self, aliases=None):
-            super().__init__()
-            self.name = "Say"
-            super()._registerCommand(self.name, self, alias="say")
-            self.before = None  # what stage it executes before
-            self.after = None  # what comes next
-
-        def func(self, **kwargs):
+        name = 'say'
+        alias = []
+        def func(self,*args, **kwargs):
             """Output a message into the channel (*this is server-side!*)"""
             if hc is not None:
                 if kwargs['colour'] is None:
