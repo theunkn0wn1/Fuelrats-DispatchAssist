@@ -64,7 +64,7 @@ class CommandBase(ABC):
         :param func_instance:
         :return:
         """
-        new_entry = {func_instance.name: {'cmd':func_instance}}
+        new_entry = {func_instance.name:func_instance}
         if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
             for val in func_instance.alias:
                 new_entry.update({val:func_instance})
@@ -80,6 +80,8 @@ class CommandBase(ABC):
         """
         if name in cls.registered_commands:
             return cls.registered_commands[name]
+        else:
+            return False
 
 
     @abstractmethod
@@ -99,18 +101,7 @@ class stageBase(CommandBase):
     registered_commands = {}
     before = None
     after = None
-    # @classmethod
-    # def _registerCommand(cls, name, func_class, alias=None):
-    #     """
-    #     Register the new command
-    #     :param name: name of stage
-    #     :param func_class: ref to function to execute
-    #     :param alias: list of any stage aliases
-    #     :return: None
-    #     """
-    #
-    #     new_entry = {name: {'cmd':func_class, 'alias':alias if alias is not None else []}}
-    #     cls.registered_commands.update(new_entry)
+
     @abstractmethod
     def func(self, *args,**kwargs):
         pass

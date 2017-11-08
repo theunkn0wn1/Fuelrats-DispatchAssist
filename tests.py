@@ -231,9 +231,9 @@ class CommandTesting(unittest.TestCase):
         self.assertEqual(data.rats, expected_rats)
 
     def test_say(self):
-        # dispatch.StageManager.Say()  # initialize
-        self.assertIsNotNone(dispatch.CommandBase.getChildren())
-        command = dispatch.stageBase.getCommand("say")()
+        dispatch.StageManager.Say() # init
+        self.assertNotEqual(dispatch.stageBase.registered_commands, {})
+        command = dispatch.stageBase.getCommand("say")
         # command: dispatch.CommandBase
         self.assertIsNotNone(command)
         print(command)
@@ -242,7 +242,7 @@ class CommandTesting(unittest.TestCase):
     def test_cmd_new_case(self):
         """Test if one can register a command and invoke it"""
 
-        cmd = dispatch.CommandBase.getCommand("new")()
+        cmd = dispatch.CommandBase.getCommand("new")
         self.assertIsNotNone(cmd)
         print("cmd = {}".format(cmd))
         cmd.func(['new', "ki"], None, None)
