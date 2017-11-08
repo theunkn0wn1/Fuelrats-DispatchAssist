@@ -53,24 +53,30 @@ class CommandBase(ABC):
     """
     Abstract for defining stage commands
     """
-    registered_commands = []
-    name = ""
-    alias = []
+    registered_commands = {}  # registry
+    name = ""  # command name
+    alias = []  # command alias
     # commands = {}
     @classmethod
-    def _registerCommand(cls, name, func, alias=None):
-        global registered_commands
-        new_entry = {name: {'cmd':func}}
-        for val in alias:
-            new_entry.update({val:{'cmd':func}})
-        registered_commands.update(new_entry)
+    def _registerCommand(cls, func_instance) -> None:
+        """
+
+        :param func_instance:
+        :return:
+        """
+        new_entry = {func_instance.name: {'cmd':func_instance}}
+        if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
+            for val in func_instance.alias:
+                new_entry.update({val:{'fclass':func_instance}})
+
+        cls.registered_commands.update(new_entry)
 
     @classmethod
     def getCommand(cls, name):
         """
         Fetches command by name or alias
         :param name: name/alias to lookup
-        :return: CommandBase sublclass
+        :return: CommandBase Instance
         """
         if name in cls.registered_commands:
             return cls.registered_commands[name]
@@ -81,6 +87,9 @@ class CommandBase(ABC):
         """Command action"""
         pass
 
+    def __init__(self):
+        self._registerCommand(self)
+
 
 
 class stageBase(CommandBase):
@@ -88,19 +97,20 @@ class stageBase(CommandBase):
     varient of commandBase to register stageCommands
     """
     registered_commands = {}
-
-    @classmethod
-    def _registerCommand(cls, name, func, alias=None):
-        """
-        Register the new command
-        :param name: name of stage
-        :param func: ref to function to execute
-        :param alias: list of any stage aliases
-        :return: None
-        """
-
-        new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
-        cls.registered_commands.update(new_entry)
+    before = None
+    after = None
+    # @classmethod
+    # def _registerCommand(cls, name, func_class, alias=None):
+    #     """
+    #     Register the new command
+    #     :param name: name of stage
+    #     :param func_class: ref to function to execute
+    #     :param alias: list of any stage aliases
+    #     :return: None
+    #     """
+    #
+    #     new_entry = {name: {'cmd':func_class, 'alias':alias if alias is not None else []}}
+    #     cls.registered_commands.update(new_entry)
     @abstractmethod
     def func(self, *args,**kwargs):
         pass
@@ -499,7 +509,6 @@ class Tracker:
 class Commands:
     """contains the Commands invoked via slash hooked during init"""
 
-
     class SetInstallDirectory(CommandBase):
         @eat_all
         def set_install_dir(self, word, word_eol, userdata):
@@ -508,9 +517,13 @@ class Commands:
             hc.set_pluginpref("installDir", word_eol[0][1])
 
         def func(self, *args):
-            self.set_install_dir(args)
+            self.set_install_dir(*args)
         name = "setInstallDir"
         alias = ['install', 'setup']
+
+
+        def __init__(self):
+            self._registerCommand(self)
 
     class NewCase(CommandBase):
         """
@@ -591,8 +604,7 @@ class Commands:
                     case.Cr()
 
         def func(self, *args,**kwargs):
-            self.code_red(*args, **kwargs)
-
+            self.code_red(*args, **kwargs)  # pack, unpack. pack, unpack.
 
 
     @staticmethod
