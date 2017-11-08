@@ -29,8 +29,8 @@ __module_name__ = "dispatch"
 __module_version__ = "0.0.1"
 __module_description__ = "Assist with automating trivial FuelRat dispatch interactions"
 database = {}
-registered_commands = {} # slash commands
-registered_stage_commands = {}  # stage commands
+# registered_commands = {} # slash commands
+# registered_stage_commands = {}  # stage commands
 verbose_logging = False  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
@@ -46,8 +46,79 @@ if hc is not None:
     print("\0033=============\n\0033custom module dispatch.py loading!\n\0033* Author:theunkn0wn1\n\0034---------")
 else:
     print("dispatch.py loading\n author: Theunkn0wn1")
-# Decorators
+# Commands
 
+
+class CommandBase(ABC):
+    """
+    Abstract for defining stage commands
+    """
+    registered_commands = []
+    name = ""
+    alias = []
+    # commands = {}
+    @classmethod
+    def _registerCommand(cls, name, func, alias=None):
+        global registered_commands
+        new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
+        registered_commands.update(new_entry)
+
+
+    @classmethod
+    def getChildren(cls):
+        return  cls.__subclasses__()
+
+    @classmethod
+    def getCommand(cls, name):
+        for command in cls.__subclasses__():
+            if command.name== name:
+                return command
+        return None
+
+
+    @abstractmethod
+    def func(self, **kwargs):
+        """Command action"""
+        pass
+
+
+
+class stageBase(CommandBase):
+    """
+    varient of commandBase to register stageCommands
+    """
+    registered_commands = {}
+
+
+    @classmethod
+    def getCommand(cls, name):
+        global registered_stage_commands
+        retCmd = registered_stage_commands[name]['func']
+        if retCmd is None:
+            for rcmd in registered_stage_commands:
+                if name in rcmd['alias']:
+                    return rcmd['func']
+        else:
+            return retCmd
+
+
+    @classmethod
+    def _registerCommand(cls, name, func, alias=None):
+        """
+        Register the new command
+        :param name: name of stage
+        :param func: ref to function to execute
+        :param alias: list of any stage aliases
+        :return: None
+        """
+
+        new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
+        cls.registered_commands.update(new_entry)
+    @abstractmethod
+    def __init__(self):
+        self.before = None
+        self.after = None
+# Wrappers
 
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
@@ -59,7 +130,6 @@ def eat_all(wrapped_function):
         else:
             return 0  # so i can test commands without hexchat being loaded
     return wrapper
-
 
 def log(trace, msg, verbose=False):
     global verbose_logging
@@ -448,6 +518,11 @@ class Commands:
         log("set_install_dir", "setting to {}".format(word_eol[0][1]), True)
         hc.set_pluginpref("installDir", word_eol[0][1])
 
+    class SetInstallDirectory(CommandBase):
+        def func(self, *args):
+            Commands.set_install_dir(args)
+        name = "setInstallDir"
+
     @staticmethod
     @eat_all
     def new_case(word, word_eol, userdata):
@@ -491,6 +566,18 @@ class Commands:
                     else:
                         log("new_case", "generating stub with client, platform,  and system...", True)
                         Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
+
+    class NewCase(CommandBase):
+
+
+
+        def func(self, **kwargs):
+            Commands.new_case(kwargs)
+
+        def __init__(self) -> None:
+            self.name = "new"
+            super()._registerCommand(self.name, func=self.func  )
+            # super().__init__()
 
     @staticmethod
     @eat_all
@@ -809,43 +896,6 @@ class Commands:
         else:
             log("stage", 'unknown mode {}'.format(mode))
         # log("stage", 'current stage is {stage}'.format())
-class CommandBase(ABC):
-    """
-    Abstract for defining stage commands
-    """
-    # registered_commands = []
-
-    @staticmethod
-    def registerCommand(name, func,alias=None):
-        global registered_commands
-        new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
-        registered_commands.update(new_entry)
-
-    @staticmethod
-    def getCommand(name):
-        global registered_commands
-        retCmd = registered_commands[name]['func']
-        if retCmd is None:
-            for rcmd in registered_commands:
-                if name in rcmd['alias']:
-                    return rcmd['func']
-        else:
-            return retCmd
-    @abstractmethod
-    def func(self, **kwargs):
-        """Command action"""
-        pass
-
-class stageBase(CommandBase):
-    """
-    varient of commandBase to register stageCommands
-    """
-    @staticmethod
-    def getCommand(name):
-        pass
-    @staticmethod
-    def registerCommand(name, func,alias=None):
-        pass
 
 class StageManager:
     """Tracks client stage and responds accordingly"""
@@ -856,7 +906,9 @@ class StageManager:
         def __init__(self, aliases=None):
             super().__init__()
             self.name = "Say"
-            super().registerCommand(self.name, self, alias="say")
+            super()._registerCommand(self.name, self, alias="say")
+            self.before = None  # what stage it executes before
+            self.after = None  # what comes next
 
         def func(self, **kwargs):
             """Output a message into the channel (*this is server-side!*)"""

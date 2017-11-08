@@ -231,12 +231,21 @@ class CommandTesting(unittest.TestCase):
 
     def test_say(self):
         dispatch.StageManager.Say()  # initialize
-        self.assertIsNotNone(dispatch.registered_commands)
-        command = dispatch.registered_commands.get('Say')
+        self.assertIsNotNone(dispatch.registered_stage_commands)
+        command = dispatch.registered_stage_commands.get('Say')
         # command: dispatch.CommandBase
         self.assertIsNotNone(command)
         print(command)
         command['cmd'].func(message="test")
+    def test_cmd_new_case(self):
+        """Test if one can register a command and invoke it"""
+        # register the command
+        dispatch.Commands.NewCase()
+
+        cmd = dispatch.CommandBase.getCommand("new")
+        self.assertIsNotNone(cmd)
+        cmd['cmd'].func(['new', "ki"], None, None)
+
 
 
 class ProxyServerParse(unittest.TestCase):
