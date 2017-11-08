@@ -67,7 +67,7 @@ class CommandBase(ABC):
         new_entry = {func_instance.name: {'cmd':func_instance}}
         if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
             for val in func_instance.alias:
-                new_entry.update({val:{'fclass':func_instance}})
+                new_entry.update({val:func_instance})
 
         cls.registered_commands.update(new_entry)
 
@@ -521,9 +521,6 @@ class Commands:
         name = "setInstallDir"
         alias = ['install', 'setup']
 
-
-        def __init__(self):
-            self._registerCommand(self)
 
     class NewCase(CommandBase):
         """
