@@ -195,12 +195,13 @@ class CommandTesting(unittest.TestCase):
         self.assertEqual(data.system, "some_random_data")
 
     def test_cr(self):
-        dispatch.Commands.code_red(["cr", "64"], ([]), None)
+        # dispatch.Commands.code_red(["cr", "64"], ([]), None)
         data = dispatch.database.get(64)
+        command = dispatch.CommandBase.getCommand('cr')()
         self.assertIsNotNone(data)
-        self.assertTrue(data.cr)
-        dispatch.Commands.code_red(["cr", "64"], ([]), None)
         self.assertFalse(data.cr)
+        command.func(word=["cr", "64"], word_eol=([]), userdata=None)
+        self.assertTrue(data.cr)
 
     def test_platform_valid(self):
         expected_platforms = ['XB', 'PC', 'PS']

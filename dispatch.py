@@ -566,23 +566,34 @@ class Commands:
             self.new_case(args, kwargs)
 
 
-    @staticmethod
-    @eat_all
-    def code_red(word, word_eol, userdata):
-        try:
-            index = int(word[1])
-            case = database.get(index)
-        except ValueError:
-            log("code_red", "Expected format: /cr case_number", True)
-        except IndexError:
-            log("code_red", "Expected format: /cr case_number", True)
-        else:
-            if case is None:
-                log("code_red", "case at index position {} does not exist.".format(index), True)
+    class CodeRed(CommandBase):
+        name = "codered"
+        alias = ['cr']
+
+        @eat_all
+        def code_red(self, word, word_eol, userdata=None):
+            try:
+                log("code_red", "word = {}".format(word), True)
+                index = int(word[1])
+                case = database.get(index)
+            except ValueError:
+                log("code_red", "Expected format: /cr case_number", True)
+            except IndexError:
+                log("code_red", "Expected format: /cr case_number", True)
             else:
-                # case: Case
-                log("code_red", "case #{index} [{client}]'s CR status has been updated".format(index=index,                                                                           client=case.client), True)
-                case.Cr()
+                if case is None:
+                    log("code_red", "case at index position {} does not exist.".format(index), True)
+                else:
+                    # case: Case
+                    log("code_red",
+                        "case #{index} [{client}]'s CR status has been updated".format(index=index, client=case.client),
+                        True)
+                    case.Cr()
+
+        def func(self, *args,**kwargs):
+            self.code_red(args, kwargs)
+
+
 
     @staticmethod
     @eat_all
