@@ -67,15 +67,8 @@ class CommandBase(ABC):
         pass
 
     @classmethod
-    def getChildren(cls):
-        return  cls.__subclasses__()
-
-    @classmethod
-    def getCommand(cls, name):
-        for command in cls.__subclasses__():
-            if command.name== name or name in command.alias:
-                return command
-        return None
+    def getCommand(cls, name):  # this is EXTREAMLY hacky. this is bad
+        return None  # stub while i refactor this.
 
 
     @abstractmethod
