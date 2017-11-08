@@ -60,15 +60,20 @@ class CommandBase(ABC):
     @classmethod
     def _registerCommand(cls, name, func, alias=None):
         global registered_commands
-        new_entry = {name: {'cmd':func, 'alias':alias if alias is not None else []}}
+        new_entry = {name: {'cmd':func}}
+        for val in alias:
+            new_entry.update({val:{'cmd':func}})
         registered_commands.update(new_entry)
-    @classmethod
-    def __register_children(cls):
-        pass
 
     @classmethod
-    def getCommand(cls, name):  # this is EXTREAMLY hacky. this is bad
-        return None  # stub while i refactor this.
+    def getCommand(cls, name):
+        """
+        Fetches command by name or alias
+        :param name: name/alias to lookup
+        :return: CommandBase sublclass
+        """
+        if name in cls.registered_commands:
+            return cls.registered_commands[name]
 
 
     @abstractmethod
