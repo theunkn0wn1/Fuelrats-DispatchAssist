@@ -573,7 +573,7 @@ class Commands:
                             Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
 
         def func(self,*args, **kwargs):
-            self.new_case(args, kwargs)
+            self.new_case(*args, **kwargs)
 
 
     class CodeRed(CommandBase):
