@@ -80,8 +80,9 @@ class CommandBase(ABC):
         """
         if name in cls.registered_commands:
             return cls.registered_commands[name]
+
         else:
-            return False
+            return None
 
 
     @abstractmethod
@@ -1114,43 +1115,49 @@ def init():
     cmd = Commands()
     board = Tracker()
     log("Init", "Adding hooks!")
-    commands = {
-        'sys': cmd.system,
-        'installDir': cmd.set_install_dir,
-        'potato': cmd.print_hook,
-        'test': cmd.run_tests,
-        'o2': cmd.oxy_check,
-        "test2": cmd.print_test,
-        "clear": cmd.clear,
-        "o2k": cmd.oxy_ack,
-        "go": cmd.go,
-        "inject": cmd.inject_case,
-        "dClear": cmd.clear_drill,
-        "stage": cmd.stage,
-        # "new": board.append,  # yeah no, this needs to be put into a wrapper (expects dict, gets string array)
-        "del": board.rm,
-        'rm': board.rm,
-        'md': board.rm,
-        "board": board.readout,
-        "verbose": cmd.toggle_verbose,
-        "raw_board": Tracker.debug_print,
-        "mv": cmd.change_index,
-        "client": cmd.client,
-        "sys": cmd.system,
-        "cr": cmd.code_red,
-        "platform": cmd.platform,
-        "assign": cmd.add_rats,
-        "unassign": cmd.remove_rats,
-        "new": cmd.new_case
-    }
+    commands = [
+        Commands.SetInstallDirectory,
+        Commands.NewCase,
+        Commands.CodeRed
+    ]
+    # commands = {
+    #     'sys': cmd.system,
+    #     'installDir': cmd.set_install_dir,
+    #     'potato': cmd.print_hook,
+    #     'test': cmd.run_tests,
+    #     'o2': cmd.oxy_check,
+    #     "test2": cmd.print_test,
+    #     "clear": cmd.clear,
+    #     "o2k": cmd.oxy_ack,
+    #     "go": cmd.go,
+    #     "inject": cmd.inject_case,
+    #     "dClear": cmd.clear_drill,
+    #     "stage": cmd.stage,
+    #     # "new": board.append,  # yeah no, this needs to be put into a wrapper (expects dict, gets string array)
+    #     "del": board.rm,
+    #     'rm': board.rm,
+    #     'md': board.rm,
+    #     "board": board.readout,
+    #     "verbose": cmd.toggle_verbose,
+    #     "raw_board": Tracker.debug_print,
+    #     "mv": cmd.change_index,
+    #     "client": cmd.client,
+    #     "sys": cmd.system,
+    #     "cr": cmd.code_red,
+    #     "platform": cmd.platform,
+    #     "assign": cmd.add_rats,
+    #     "unassign": cmd.remove_rats,
+    #     "new": cmd.new_case
+    # }
     try:
         if hc is not None:
-            for key in commands:
-                log("init", "adding hook for\t{}".format(key))
-                hc.hook_command(key, commands[key])
+                # hc.hook_command(key, commands[key])
             hc.hook_server("PRIVMSG", on_message_received)
         else:
             log("init:hexchat", "hexchat module is not loaded, skipping hex init...")
+            for key in commands:
+                log("init", "calling init for \t{}".format(key.name), True)
+                key()  # init class
     except Exception as e:
         log("Init", "\0034Failure adding hooks! error reads as follows:", True)
         log("Init", e, True)

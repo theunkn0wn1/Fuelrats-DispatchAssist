@@ -166,6 +166,12 @@ class CommandTesting(unittest.TestCase):
     """
     For the testing of / commands
     """
+
+    @classmethod
+    def setUpClass(cls):
+        dispatch.init()
+        super().setUpClass()
+
     def setUp(self):
         """
         shared vars that must be initialized prior to test
@@ -197,7 +203,7 @@ class CommandTesting(unittest.TestCase):
     def test_cr(self):
         # dispatch.Commands.code_red(["cr", "64"], ([]), None)
         data = dispatch.database.get(64)
-        command = dispatch.CommandBase.getCommand('cr')()
+        command = dispatch.CommandBase.getCommand('cr')
         self.assertIsNotNone(data)
         self.assertFalse(data.cr)
         command.func(word=["cr", "64"], word_eol=[], userdata=None)
@@ -231,7 +237,7 @@ class CommandTesting(unittest.TestCase):
         self.assertEqual(data.rats, expected_rats)
 
     def test_say(self):
-        dispatch.StageManager.Say() # init
+        # dispatch.StageManager.Say() # init
         self.assertNotEqual(dispatch.stageBase.registered_commands, {})
         command = dispatch.stageBase.getCommand("say")
         # command: dispatch.CommandBase
@@ -247,6 +253,7 @@ class CommandTesting(unittest.TestCase):
         print("cmd = {}".format(cmd))
         cmd.func(['new', "ki"], None, None)
 
+    # @unittest.expectedFailure
     def test_find_by_alias(self):
         cmd = dispatch.CommandBase.getCommand('create')
         self.assertIsNotNone(cmd)
