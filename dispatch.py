@@ -31,7 +31,7 @@ __module_description__ = "Assist with automating trivial FuelRat dispatch intera
 database = {}
 # registered_commands = {} # slash commands
 # registered_stage_commands = {}  # stage commands
-verbose_logging = False  # if you want to see everything, it can be deafening.
+verbose_logging = True  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
@@ -581,9 +581,9 @@ class Commands:
                 index = int(word[1])
                 case = database.get(index)
             except ValueError:
-                log("code_red", "Expected format: /cr case_number", True)
+                log("code_red", "(ve)Expected format: /cr case_number", True)
             except IndexError:
-                log("code_red", "Expected format: /cr case_number", True)
+                log("code_red", "(ie)Expected format: /cr case_number", True)
             else:
                 if case is None:
                     log("code_red", "case at index position {} does not exist.".format(index), True)
@@ -594,8 +594,9 @@ class Commands:
                         True)
                     case.Cr()
 
-        def func(self, *args,**kwargs):
-            self.code_red(*args, **kwargs)  # pack, unpack. pack, unpack.
+        def func(self, word, word_eol=None, userdata=None):
+            log("code_red.func","word = {}".format(word))
+            self.code_red(*word, word_eol, userdata)  # pack, unpack. pack, unpack.
 
 
     @staticmethod
