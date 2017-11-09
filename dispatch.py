@@ -67,6 +67,7 @@ class CommandBase(ABC):
         new_entry = {func_instance.name:func_instance}
         if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
             for val in func_instance.alias:
+                log("CommandBase._registerCommand", "registering hook for {}\n".format(val))
                 new_entry.update({val:func_instance})
 
         cls.registered_commands.update(new_entry)
@@ -78,12 +79,13 @@ class CommandBase(ABC):
         :param name: name/alias to lookup
         :return: CommandBase Instance
         """
-        if name in cls.registered_commands:
-            return cls.registered_commands[name]
-
+        if isinstance(name, str):
+            if name in cls.registered_commands:
+                return cls.registered_commands[name]
+            else:
+                return None
         else:
-            return None
-
+            raise TypeError("name was of type {} with data {}".format(type(name), name))
 
     @abstractmethod
     def func(self, *args,**kwargs):
@@ -1156,7 +1158,7 @@ def init():
         else:
             log("init:hexchat", "hexchat module is not loaded, skipping hex init...")
             for key in commands:
-                log("init", "calling init for \t{}".format(key.name), True)
+                log("init", "calling init for \t{}\n".format(key.name), True)
                 key()  # init class
     except Exception as e:
         log("Init", "\0034Failure adding hooks! error reads as follows:", True)

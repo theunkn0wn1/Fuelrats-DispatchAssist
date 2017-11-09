@@ -255,8 +255,11 @@ class CommandTesting(unittest.TestCase):
 
     # @unittest.expectedFailure
     def test_find_by_alias(self):
-        cmd = dispatch.CommandBase.getCommand('create')
-        self.assertIsNotNone(cmd)
+        commands = ['create', 'new', 'cr']
+        for name in commands:
+            with self.subTest(cmd = name):
+                found = dispatch.CommandBase.getCommand(name=name)
+                self.assertIsNotNone(found)
 
 
 
