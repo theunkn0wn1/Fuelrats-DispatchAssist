@@ -1118,11 +1118,14 @@ def init():
     cmd = Commands()
     board = Tracker()
     log("Init", "Adding hooks!")
-    commands = [
+
+    commands = [  # contains class references to Commands subclassing CommandBase
         Commands.SetInstallDirectory,
         Commands.NewCase,
-        Commands.CodeRed
-    ]
+        Commands.CodeRed,
+        StageManager.Say
+    ]  # i would have CommandBase do it itself but thats black magic and headaches.
+        # not to mention 'hacky' soo this will have to do
     # commands = {
     #     'sys': cmd.system,
     #     'installDir': cmd.set_install_dir,
