@@ -7,7 +7,7 @@ Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fue
 # Requirements:
 * Hexchat - {link} - currently this project only supports Hexchat. 
 * Python 3.5.2 - {link}
-* Tabulate - {link} This is for graphical representation of the collected data
+* Pip3 - part of the standard python3 install, required for installing dependencies
 # quick setup guide
 1. Install python version 3.5.2 to a location of your choice, i suggest the default
  - You need to check the box that allows Python to install itself to the PATH
@@ -26,11 +26,13 @@ Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fue
     1. On my Github page click the green `Clone or download`
     2. on the resulting dropdown click 'download ZIP' and save it somewhere
     3. Extract the archive to your desired installation directory and note that directory down.
+    4. Open up your terminal and browse to the installation directory for the script
+    5. run command 'pip install requirements.txt'
     4. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full system math to where `dispatch.py` is located
 
 Plans are in place to support other IRC clients that have a python3 interface at later point in time
 # Usage:
-Once loaded into hexchat, it will automaticially detect Ratsignals as they arrive in #Fuelrats
+Once loaded into hexchat, it will automatically detect Ratsignals as they arrive in #Fuelrats
 You can view the collected data with the command `/board`
 ## Case management:
 ### 1. Move case ID
