@@ -677,24 +677,30 @@ class Commands:
                 case.Platform(platform)
                 log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
 
+    class SetVerbose(CommandBase):
+        name = 'verbose'
+        @eat_all
+        def func(*args):
+            """
+            Toggles the verbose_logging field
+            Use this only if you are sure you can withstand the flood!
+            :param args:
+            :return:
+            """
+            global verbose_logging
+            verbose_logging = not verbose_logging
+            log("toggle_verbose", "Toggling verbose logging to {}".format(verbose_logging), True)
 
-    @staticmethod
-    @eat_all
-    def toggle_verbose(*args):
-        """
-        Toggles the verbose_logging field
-        Use this only if you are sure you can withstand the flood!
-        :param args:
-        :return:
-        """
-        global verbose_logging
-        verbose_logging = not verbose_logging
-        log("toggle_verbose", "Toggling verbose logging to {}".format(verbose_logging), True)
+
 
     @staticmethod
     @eat_all
     def run_tests(word, word_eol, userdata):
-        """Runs tests and generates some dummy cases"""
+        """
+        THIS COMMAND IS DEPRICATED
+        Runs tests and generates some dummy cases
+        """
+        raise DeprecationWarning("This command is depricated, don't use it. duh.")
         log("run_tests", "Running Tracker.inject Test 1...")
         Tracker.inject([None], True, None)
         # log("run_tests", "running test 2")
@@ -718,69 +724,73 @@ class Commands:
 
         log("run_tests", "done!")
 
-    @staticmethod
-    @eat_all
-    def add_rats(word, word_eol, userdata):
-        rat = []
-        try:
-            index = int(word[1])
-            case = database.get(index)
-            if case is None:
-                log("add_rats", "unable to find case with index {}".format(index))
-                return  # No point continuing... the case is invalid
-            # mode = word[2]
-            # case:Case
-            for value in word[2:]:  # taking any word after the index to be a rat
-                rat.append(value)  # and adding it to the case
-        except IndexError:
-            log("add_rats", "not enough arguments", True)  # not enough arguments
-            return
-        except ValueError:
-            raise  # invalid input
-        except AttributeError:
-            raise
-        else:
-            if len(rat) is 0:
+    class AddRats(CommandBase):
+        name = "add"
+        alias = ['go', 'assign']
+        @eat_all
+        def func(word, word_eol, userdata):
+            rat = []
+            try:
+                index = int(word[1])
+                case = database.get(index)
+                if case is None:
+                    log("add_rats", "unable to find case with index {}".format(index))
+                    return  # No point continuing... the case is invalid
+                # mode = word[2]
+                # case:Case
+                for value in word[2:]:  # taking any word after the index to be a rat
+                    rat.append(value)  # and adding it to the case
+            except IndexError:
                 log("add_rats", "not enough arguments", True)  # not enough arguments
-            elif len(rat) is 1:
-                log("add_rats", "adding single rat...")
-                case.Rats(rat[0], 'add')  # just one
+                return
+            except ValueError:
+                raise  # invalid input
+            except AttributeError:
+                raise
             else:
-                log("add_rats", "addding add_rats...")
-                print(rat)
-                case.Rats(rat, 'add')  # multiple, pass the list in
+                if len(rat) is 0:
+                    log("add_rats", "not enough arguments", True)  # not enough arguments
+                elif len(rat) is 1:
+                    log("add_rats", "adding single rat...")
+                    case.Rats(rat[0], 'add')  # just one
+                else:
+                    log("add_rats", "addding add_rats...")
+                    print(rat)
+                    case.Rats(rat, 'add')  # multiple, pass the list in
 
-    @staticmethod
-    @eat_all
-    def remove_rats(word, word_eol, userdata):
-        rat = []
-        try:
-            index = int(word[1])
-            case = database.get(index)
-            if case is None:
-                log("add_rats", "unable to find case with index {}".format(index))
-                return  # No point continuing... the case is invalid
-            # mode = word[2]
-            # case:Case
-            for value in word[2:]:  # taking any word after the index to be a rat
-                rat.append(value)  # and adding it to the case
-        except IndexError:
-            log("add_rats", "not enough arguments", True)  # not enough arguments
-            return
-        except ValueError:
-            raise  # invalid input
-        except AttributeError:
-            raise
-        else:
-            if len(rat) is 0:
+    class RemoveRats(CommandBase):
+        name = "unassign"
+        alias = ['remove']
+        @eat_all
+        def func(word, word_eol, userdata=None):
+            rat = []
+            try:
+                index = int(word[1])
+                case = database.get(index)
+                if case is None:
+                    log("add_rats", "unable to find case with index {}".format(index))
+                    return  # No point continuing... the case is invalid
+                # mode = word[2]
+                # case:Case
+                for value in word[2:]:  # taking any word after the index to be a rat
+                    rat.append(value)  # and adding it to the case
+            except IndexError:
                 log("add_rats", "not enough arguments", True)  # not enough arguments
-            elif len(rat) is 1:
-                log("add_rats", "adding single rat...")
-                case.Rats(rat[0], 'remove')  # just one
+                return
+            except ValueError:
+                raise  # invalid input
+            except AttributeError:
+                raise
             else:
-                log("add_rats", "addding add_rats...")
-                print(rat)
-                case.Rats(rat, 'remove')  # multiple, pass the list in
+                if len(rat) is 0:
+                    log("add_rats", "not enough arguments", True)  # not enough arguments
+                elif len(rat) is 1:
+                    log("add_rats", "adding single rat...")
+                    case.Rats(rat[0], 'remove')  # just one
+                else:
+                    log("add_rats", "addding add_rats...")
+                    print(rat)
+                    case.Rats(rat, 'remove')  # multiple, pass the list in
 
     @staticmethod
     @eat_all
@@ -1141,7 +1151,11 @@ def init():
         StageManager.Say,
         Commands.SetClient,
         Commands.SetPlatform,
-        Commands.SetSystem
+        Commands.SetSystem,
+        Commands.SetVerbose,
+        Commands.AddRats,
+        Commands.RemoveRats,
+
     ]  # i would have CommandBase do it itself but thats black magic and headaches.
         # not to mention 'hacky' soo this will have to do
     # commands = {

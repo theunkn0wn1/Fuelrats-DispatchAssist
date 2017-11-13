@@ -230,7 +230,8 @@ class CommandTesting(unittest.TestCase):
         expected_rats = ["theunkn0wn1[pc]", "ninjaKiwi"]
         command = ["append", "64"] + expected_rats
         data = dispatch.database.get(64)
-        dispatch.Commands.add_rats(command)
+        cmd_func = dispatch.CommandBase.getCommand('append')
+        cmd_func.func(command,None)
         # data: dispatch.Case
         self.assertEqual(data.rats, expected_rats)
 
