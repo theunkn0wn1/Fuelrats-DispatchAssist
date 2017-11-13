@@ -67,10 +67,14 @@ class CommandBase(ABC):
         :return:
         """
         new_entry = {func_instance.name:func_instance}
+        if hc is not None:
+            hc.hook_command(func_instance.name, func_instance.func)
         if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
             for val in func_instance.alias:
                 log("CommandBase._registerCommand", "registering hook for {}\n".format(val))
                 new_entry.update({val:func_instance})
+                if hc is not None:
+                    hc.hook_command(val, func_instance.func)
 
         cls.registered_commands.update(new_entry)
 
@@ -789,6 +793,12 @@ class Commands:
                     print(rat)
                     case.Rats(rat, 'remove')  # multiple, pass the list in
 
+    class Board(CommandBase):
+        name = 'board'
+        alias = ['readout', 'list']
+        def func(self, word=None, word_eol=None, userdata=None):
+            Tracker.readout(None, None, None)
+
     @staticmethod
     @eat_all
     def oxy_check(a, b, c):
@@ -1152,6 +1162,7 @@ def init():
         Commands.SetVerbose,
         Commands.AddRats,
         Commands.RemoveRats,
+        Commands.Board
 
     ]  # i would have CommandBase do it itself but thats black magic and headaches.
         # not to mention 'hacky' soo this will have to do
@@ -1190,9 +1201,9 @@ def init():
             hc.hook_server("PRIVMSG", on_message_received)
         else:
             log("init:hexchat", "hexchat module is not loaded, skipping hex init...")
-            for key in commands:
-                log("init", "calling init for \t{}\n".format(key.name), True)
-                key()  # init class
+        for key in commands:
+            log("init", "calling init for \t{}\n".format(key.name), True)
+            key()  # init class
     except Exception as e:
         log("Init", "\0034Failure adding hooks! error reads as follows:", True)
         log("Init", e, True)
