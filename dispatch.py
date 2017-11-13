@@ -60,7 +60,7 @@ class CommandBase(ABC):
     alias = []  # command alias
     # commands = {}
     @classmethod
-    def _registerCommand(cls, func_instance) -> None:
+    def _registerCommand(cls, func_instance, hook=True) -> None:
         """
 
         :param func_instance:
@@ -68,12 +68,13 @@ class CommandBase(ABC):
         """
         new_entry = {func_instance.name:func_instance}
         if hc is not None:
-            hc.hook_command(func_instance.name, func_instance.func)
+            if hook:
+                hc.hook_command(func_instance.name, func_instance.func)
         if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
             for val in func_instance.alias:
                 log("CommandBase._registerCommand", "registering hook for {}".format(val))
                 new_entry.update({val:func_instance})
-                if hc is not None:
+                if hc is not None and hook:
                     hc.hook_command(val, func_instance.func)
 
         cls.registered_commands.update(new_entry)
@@ -108,8 +109,13 @@ class stageBase(CommandBase):
     varient of commandBase to register stageCommands
     """
     registered_commands = {}
+    hookable = True
     before = None
     after = None
+
+    @classmethod
+    def _registerCommand(cls, func_instance, hook=hookable) -> None:
+        super()._registerCommand(func_instance, cls.hookable)
 
 
 # Wrappers
@@ -164,7 +170,7 @@ class Translations:
 
         }
         prep = {
-            'fact': 'Please drop from super cruise, come to a complete stop and disable all modules EXCEPT life support.  If you are currently in a Multicrew session and are the ship owner, please also end your Multicrew session (Comms Panel > 2nd tab > Multicrew Options > Disband Crew).'
+            'fact': '{commander}: Please drop from super cruise, come to a complete stop and disable all modules EXCEPT life support.  If you are currently in a Multicrew session and are the ship owner, please also end your Multicrew session (Comms Panel > 2nd tab > Multicrew Options > Disband Crew).'
         }
 
 
@@ -829,9 +835,9 @@ class Commands:
             name = "oxyAck"
             log(name, "ackowledging OK o2")
             commander = word[1]
-            hc.command("say {}, Understood, please see to those modules and let me know AT ONCE should that timer make"
-                       "itself known.".format(commander))
-            hc.command("say {}".format(Translations.English.prep['fact']))
+            hc.command("say {}, please see to those modules and let me know AT ONCE should that timer make"
+                       " itself known.".format(commander))
+            hc.command("say {}".format(Translations.English.prep['fact'].format(commander=commander)))
     @staticmethod
     @eat_all
     def print_test(a, b, c):
@@ -957,7 +963,7 @@ class StageManager:
         """
         name = 'say'
         alias = []
-
+        hookable = False# prevent this command from hooking into the clients command system
         @eat_all
         def func(self,*args, **kwargs):
             """Output a message into the channel (*this is server-side!*)"""
