@@ -163,6 +163,9 @@ class Translations:
                 }
 
         }
+        prep = {
+            'fact': 'Please drop from super cruise, come to a complete stop and disable all modules EXCEPT life support.  If you are currently in a Multicrew session and are the ship owner, please also end your Multicrew session (Comms Panel > 2nd tab > Multicrew Options > Disband Crew).'
+        }
 
 
 class Utilities:
@@ -801,21 +804,34 @@ class Commands:
         @eat_all
         def func(self, word, word_eol=None,userdata=None):
             print(self.registered_commands)
-    @staticmethod
-    @eat_all
-    def oxy_check(a, b, c):
-        name = "oxy_check"
-        log(name, "checking o2 for client:\t{cmdr}".format(cmdr=a[1]))
-        hc.command("say greetings " + a[1] + ",are you on emergency o2?(blue timer top right)")
 
-    @staticmethod
-    @eat_all
-    def oxy_ack(a, b, c):
-        name = "oxyAck"
-        log(name, "ackowledging OK o2")
-        commander = a[1]
-        hc.command("say {}, Understood, please let me know at once if it makes itself known ;)".format(commander))
+    class CheckO2(CommandBase):
+        name = "check"
+        alias = ['o2']
+        @eat_all
+        def func(self, word, word_eol, userdata=None):
+            name = "oxy_check"
+            log(name, "checking o2 for client:\t{cmdr}".format(cmdr=word[1]))
+            hc.command("say greetings " + word[1] + ",are you on emergency o2?(blue timer top right)")
 
+    class AckO2(CommandBase):
+        name = "o2k"
+        alias = ['prep']
+        @eat_all
+        def func(self, word, word_eol, userdata=None) -> None:
+            """
+            /acknowledge OK o2, prompt client to prepare for our arrival
+            :param word: space delimated words
+            :param word_eol: space delimated words to EOL (long list)
+            :param userdata: None
+            :return: None
+            """
+            name = "oxyAck"
+            log(name, "ackowledging OK o2")
+            commander = word[1]
+            hc.command("say {}, Understood, please see to those modules and let me know AT ONCE should that timer make"
+                       "itself known.".format(commander))
+            hc.command("say {}".format(Translations.English.prep['fact']))
     @staticmethod
     @eat_all
     def print_test(a, b, c):
@@ -1167,7 +1183,9 @@ def init():
         Commands.AddRats,
         Commands.RemoveRats,
         Commands.Board,
-        Commands.ListCommands
+        Commands.ListCommands,
+        Commands.CheckO2,
+        Commands.AckO2
     ]  # i would have CommandBase do it itself but thats black magic and headaches.
         # not to mention 'hacky' soo this will have to do
     # commands = {
