@@ -17,7 +17,7 @@ Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fue
 4. Get yourself a copy of this repository, i suggest using Git.
     1. From within your preferred CLI browse to the directory you would like to install my script to
     2. type `git clone https://github.com/theunkn0wn1/Fuelrats-DispatchAssist.git` and note down the path to the created folder.
-    3. Open hexchat and, in the message box, type `/py load "/path/to/dispatch.py"`, replacing `/path/to` with the full set_system math to where `dispatch.py` is located
+    3. Open hexchat and, in the message box, type `/py load "/path/to/dispatch.py"`, replacing `/path/to` with the full system math to where `dispatch.py` is located
     4. **_(OPTIONAL)_** If you live on the edge you or want access to the latest features you can checkout my dev branch
         - Features on the dev branch are in development and are subject to change/deletion, use it at your own risk
         - Should that little warning not scare you away, go back to your CLI and type `git checkout dev` and reload the script in Hexchat.
@@ -26,7 +26,7 @@ Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fue
     1. On my Github page click the green `Clone or download`
     2. on the resulting dropdown click 'download ZIP' and save it somewhere
     3. Extract the archive to your desired installation directory and note that directory down.
-    4. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full set_system math to where `dispatch.py` is located
+    4. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full system math to where `dispatch.py` is located
 
 Plans are in place to support other IRC clients that have a python3 interface at later point in time
 # Usage:
