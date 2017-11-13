@@ -94,9 +94,9 @@ class CommandBase(ABC):
             raise TypeError("name was of type {} with data {}".format(type(name), name))
 
     @abstractmethod
-    def func(self, *args,**kwargs):
+    def func(self, word, word_eol, userdata=None):
         """Command action"""
-        pass
+        raise NotImplementedError("func method not defined, please do tell the developer they missed a spot.")
 
     def __init__(self):
         self._registerCommand(self)
@@ -111,9 +111,6 @@ class stageBase(CommandBase):
     before = None
     after = None
 
-    @abstractmethod
-    def func(self, *args,**kwargs):
-        pass
 
 # Wrappers
 
@@ -123,9 +120,10 @@ def eat_all(wrapped_function):
     def wrapper(arg,*args, **kwargs):
         wrapped_function(arg, *args, **kwargs)
         if hc is not None:
+            # print("returning {}".format(hc.EAT_ALL))
             return hc.EAT_ALL
         else:
-            return 0  # so i can test commands without hexchat being loaded
+            return 3  # so i can test commands without hexchat being loaded,3 is the enum value
     return wrapper
 
 def log(trace, msg, verbose=False):
@@ -530,7 +528,7 @@ class Commands:
         alias = ['create']
 
         @eat_all
-        def new_case(self, word, word_eol, userdata=None):
+        def func(self, word, word_eol, userdata=None):
             """
             Create a new stub case
             :param word: space delimenated args
@@ -571,9 +569,6 @@ class Commands:
                         else:
                             log("new_case", "generating stub with client, platform,  and set_system...", True)
                             Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
-
-        def func(self,*args, **kwargs):
-            self.new_case(*args, **kwargs)
 
 
     class CodeRed(CommandBase):
@@ -796,9 +791,16 @@ class Commands:
     class Board(CommandBase):
         name = 'board'
         alias = ['readout', 'list']
+        @eat_all
         def func(self, word=None, word_eol=None, userdata=None):
             Tracker.readout(None, None, None)
 
+    class ListCommands(CommandBase):
+        name = 'help'
+        alias = ['commands']
+        @eat_all
+        def func(self, word, word_eol=None,userdata=None):
+            print(self.registered_commands)
     @staticmethod
     @eat_all
     def oxy_check(a, b, c):
@@ -939,6 +941,8 @@ class StageManager:
         """
         name = 'say'
         alias = []
+
+        @eat_all
         def func(self,*args, **kwargs):
             """Output a message into the channel (*this is server-side!*)"""
             if hc is not None:
@@ -1162,7 +1166,8 @@ def init():
         Commands.SetVerbose,
         Commands.AddRats,
         Commands.RemoveRats,
-        Commands.Board
+        Commands.Board,
+        Commands.ListCommands
     ]  # i would have CommandBase do it itself but thats black magic and headaches.
         # not to mention 'hacky' soo this will have to do
     # commands = {

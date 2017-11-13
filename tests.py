@@ -192,8 +192,8 @@ class CommandTesting(unittest.TestCase):
         # ['sys', '2', 'overall', 'asd']  # word
         # (['sys 2 overall asd', '2 overall asd', 'overall asd', 'asd'], None)  # word_eol
         cmd = dispatch.CommandBase.getCommand('sys')
-        cmd.func(
-                ['set_system', '64', 'some_random_data'],["", "64 some_random_data", "some_random_data"])
+        self.assertEqual(cmd.func(
+                ['set_system', '64', 'some_random_data'],["", "64 some_random_data", "some_random_data"]), 3)
         data = dispatch.database.get(64)
         # data: dispatch.Case
         self.assertEqual(data.system, "some_random_data")
@@ -204,7 +204,7 @@ class CommandTesting(unittest.TestCase):
         command = dispatch.CommandBase.getCommand('cr')
         self.assertIsNotNone(data)
         self.assertFalse(data.cr)
-        command.func(["cr", "64"],None,None)
+        self.assertEqual(command.func(["cr", "64"],None,None), 3)
         self.assertTrue(data.cr)
 
     def test_platform_valid(self):
@@ -214,7 +214,7 @@ class CommandTesting(unittest.TestCase):
         # data: dispatch.Case
         for platform in expected_platforms:
             with self.subTest(platform=platform):
-                    command.func(['platform', '64', platform], None, None)
+                    self.assertEqual(command.func(['platform', '64', platform], None, None),3)
                     self.assertEqual(data.platform, platform)
 
     def test_platform_invalid(self):
@@ -224,7 +224,7 @@ class CommandTesting(unittest.TestCase):
         # data: dispatch.Case
         for platform in bad_platforms:
             with self.subTest(platform=platform):
-                command.func(['platform', '64', platform], None, None)
+                self.assertEqual(command.func(['platform', '64', platform], None, None),3)
         self.assertEqual(data.platform, 'ps')  # the platform should remain unchanged.
 
     def test_add_rats(self):
@@ -233,7 +233,7 @@ class CommandTesting(unittest.TestCase):
         command = ["append", "64"] + expected_rats
         data = dispatch.database.get(64)
         cmd_func = dispatch.CommandBase.getCommand('assign')
-        cmd_func.func(command,None)
+        self.assertEqual(cmd_func.func(command,None),3)
         # data: dispatch.Case
         self.assertEqual(data.rats, expected_rats)
 
@@ -244,7 +244,7 @@ class CommandTesting(unittest.TestCase):
         # command: dispatch.CommandBase
         self.assertIsNotNone(command)
         print(command)
-        command.func(message="test")
+        self.assertEqual(command.func(message="test"), 3)
 
     def test_cmd_new_case(self):
         """Test if one can register a command and invoke it"""
@@ -252,7 +252,7 @@ class CommandTesting(unittest.TestCase):
         cmd = dispatch.CommandBase.getCommand("new")
         self.assertIsNotNone(cmd)
         print("cmd = {}".format(cmd))
-        cmd.func(['new', "2", "ki"], None, None)
+        self.assertEqual(cmd.func(['new', "2", "ki"], None, None), 3)  # the 3 ensures we didn't miss a wrapper
         case = dispatch.Tracker.get_case(value=2)
         self.assertIsNotNone(case)
     # @unittest.expectedFailure
@@ -310,4 +310,5 @@ class ProxyServerParse(unittest.TestCase):
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
+    dispatch.verbose_logging = True  # for when shit hits the fan
     unittest.main()
