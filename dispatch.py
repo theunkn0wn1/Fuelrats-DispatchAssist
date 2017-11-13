@@ -33,7 +33,7 @@ __module_description__ = "Assist with automating trivial FuelRat dispatch intera
 database = {}
 # registered_commands = {} # slash commands
 # registered_stage_commands = {}  # stage commands
-verbose_logging = True  # if you want to see everything, it can be deafening.
+verbose_logging = False  # if you want to see everything, it can be deafening.
 # Debug constants
 debug_constant_a = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":ClientName's", 'case', 'opened', 'with:', '"sol', 'pc"', '(Case', '4,', 'PC)']
 debug_constant_B = [':DrillSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#DrillRats3', ":Potato's", 'case', 'opened', 'with:', '"ki', 'ps"', '(Case', '9,', 'PS4)']
@@ -71,7 +71,7 @@ class CommandBase(ABC):
             hc.hook_command(func_instance.name, func_instance.func)
         if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
             for val in func_instance.alias:
-                log("CommandBase._registerCommand", "registering hook for {}\n".format(val))
+                log("CommandBase._registerCommand", "registering hook for {}".format(val))
                 new_entry.update({val:func_instance})
                 if hc is not None:
                     hc.hook_command(val, func_instance.func)
@@ -314,8 +314,8 @@ class Parser:
                 z = i + 1
                 system = ""
                 while phrase[z] != "-":
-                    if "(" in phrase[z] or "not" in phrase[z]:  # checks if we have reached the distance from part of the set_system
-                        break  # and discard, since it is not part of the actual set_system name
+                    if "(" in phrase[z] or "not" in phrase[z]:  # checks if we have reached the distance from part of the system
+                        break  # and discard, since it is not part of the actual system name
                     else:
                         system += " "
                         system += Utilities.strip_fancy(phrase[z], allowed_fancy="-")
@@ -1163,7 +1163,6 @@ def init():
         Commands.AddRats,
         Commands.RemoveRats,
         Commands.Board
-
     ]  # i would have CommandBase do it itself but thats black magic and headaches.
         # not to mention 'hacky' soo this will have to do
     # commands = {
