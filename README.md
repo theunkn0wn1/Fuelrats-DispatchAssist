@@ -28,7 +28,7 @@ Greetings Commander. Dispatch.py is a module that aims to ease the burden on Fue
     3. Extract the archive to your desired installation directory and note that directory down.
     4. Open up your terminal and browse to the installation directory for the script
     5. run command 'pip install requirements.txt'
-    4. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full system math to where `dispatch.py` is located
+    6. Open up hexchat and, in the messagebox, type '/py load /path/to/dispatch.py', replacing `/path/to` with the full system path to where `dispatch.py` is located
 
 Plans are in place to support other IRC clients that have a python3 interface at later point in time
 # Usage:
