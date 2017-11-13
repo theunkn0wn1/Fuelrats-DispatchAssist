@@ -217,7 +217,7 @@ class CommandTesting(unittest.TestCase):
                     self.assertEqual(data.platform, platform)
 
     def test_platform_invalid(self):
-        bad_platforms = ['xbox', "pee-cee","ps3",""]
+        bad_platforms = ['xbox', "pee-cee","ps3","", None]
         data = dispatch.database.get(64)
         command = dispatch.CommandBase.getCommand('platform')
         # data: dispatch.Case

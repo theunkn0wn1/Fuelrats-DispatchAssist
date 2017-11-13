@@ -644,6 +644,7 @@ class Commands:
         #     self.set_system(*args, **kwargs)
 
     class SetPlatform(CommandBase):
+        name = 'platform'
         @eat_all
         def func(self, word, word_eol, userdata=None):
             """
@@ -656,7 +657,7 @@ class Commands:
             valid_platforms = ["pc", "xb", "ps"]
             try:
                 index = int(word[1])
-                platform = word[2].lower()
+                platform = word[2].lower() if word[2] is not None else ""
                 if platform not in valid_platforms:
                     log(
                             "platform", "{platform} is not recognized, valid options are {options}".format(
