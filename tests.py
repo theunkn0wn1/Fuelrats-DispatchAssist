@@ -219,18 +219,19 @@ class CommandTesting(unittest.TestCase):
     def test_platform_invalid(self):
         bad_platforms = ['xbox', "pee-cee","ps3",""]
         data = dispatch.database.get(64)
+        command = dispatch.CommandBase.getCommand('platform')
         # data: dispatch.Case
         for platform in bad_platforms:
             with self.subTest(platform=platform):
-                dispatch.Commands.platform(['platform', '64', platform], None, None)
+                command.func(['platform', '64', platform], None, None)
         self.assertEqual(data.platform, 'ps')  # the platform should remain unchanged.
 
     def test_add_rats(self):
-        """via command this time"""
+        """Via getCommand"""
         expected_rats = ["theunkn0wn1[pc]", "ninjaKiwi"]
         command = ["append", "64"] + expected_rats
         data = dispatch.database.get(64)
-        cmd_func = dispatch.CommandBase.getCommand('append')
+        cmd_func = dispatch.CommandBase.getCommand('assign')
         cmd_func.func(command,None)
         # data: dispatch.Case
         self.assertEqual(data.rats, expected_rats)

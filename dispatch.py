@@ -680,7 +680,7 @@ class Commands:
     class SetVerbose(CommandBase):
         name = 'verbose'
         @eat_all
-        def func(*args):
+        def func(self, *args):
             """
             Toggles the verbose_logging field
             Use this only if you are sure you can withstand the flood!
@@ -728,7 +728,7 @@ class Commands:
         name = "add"
         alias = ['go', 'assign']
         @eat_all
-        def func(word, word_eol, userdata):
+        def func(self, word, word_eol, userdata=None):
             rat = []
             try:
                 index = int(word[1])
@@ -762,7 +762,7 @@ class Commands:
         name = "unassign"
         alias = ['remove']
         @eat_all
-        def func(word, word_eol, userdata=None):
+        def func(self, word, word_eol, userdata=None):
             rat = []
             try:
                 index = int(word[1])
