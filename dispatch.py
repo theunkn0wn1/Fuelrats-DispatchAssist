@@ -577,7 +577,7 @@ class Commands:
         alias = ['cr']
 
         @eat_all
-        def code_red(self, word, word_eol, userdata=None):
+        def func(self, word, word_eol, userdata=None):
             try:
                 log("code_red", "word = {}".format(word), True)
                 index = int(word[1])
@@ -595,10 +595,6 @@ class Commands:
                         "case #{index} [{client}]'s CR status has been updated".format(index=index, client=case.client),
                         True)
                     case.Cr()
-
-        def func(self, word, word_eol=None, userdata=None):
-            log("code_red.func","word = {}".format(word))
-            self.code_red(*word, word_eol, userdata)  # pack, unpack. pack, unpack.
 
     class SetClient(CommandBase):
         name = "client"
