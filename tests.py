@@ -209,11 +209,12 @@ class CommandTesting(unittest.TestCase):
 
     def test_platform_valid(self):
         expected_platforms = ['XB', 'PC', 'PS']
+        command = dispatch.CommandBase.getCommand('platform')
         data = dispatch.database.get(64)
         # data: dispatch.Case
         for platform in expected_platforms:
             with self.subTest(platform=platform):
-                    dispatch.Commands.platform(['platform', '64', platform], None, None)
+                    command.func(['platform', '64', platform], None, None)
                     self.assertEqual(data.platform, platform)
 
     def test_platform_invalid(self):
