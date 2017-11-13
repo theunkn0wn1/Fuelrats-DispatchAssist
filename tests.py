@@ -87,14 +87,14 @@ class Backend_tests(unittest.TestCase):
     def test_change_system(self):
         """
         depends on test_a_get_case
-        updates case 42's system and verifies the result
+        updates case 42's set_system and verifies the result
         """
         data = dispatch.Tracker.get_case(value="client")
         dispatch.log("test_change_system", "data is {}".format(data), True)
         dispatch.log("test_change_system", "database itself is {}".format(dispatch.database), True)
         self.assertIsNotNone(data)
         data.System("al-qaum")
-        self.assertEqual(data.system, "al-qaum")
+        self.assertEqual(data.set_system, "al-qaum")
 
     def test_change_client_name(self):
         """
@@ -192,10 +192,9 @@ class CommandTesting(unittest.TestCase):
     def test_system(self):
         # ['sys', '2', 'overall', 'asd']  # word
         # (['sys 2 overall asd', '2 overall asd', 'overall asd', 'asd'], None)  # word_eol
-        dispatch.Commands.system(
-            ['system', '64', 'some_random_data'],
-            (["", "64 some_random_data", "some_random_data"]),
-            None)
+        cmd = dispatch.CommandBase.getCommand('sys')
+        cmd.func(
+                ['set_system', '64', 'some_random_data'],["", "64 some_random_data", "some_random_data"])
         data = dispatch.database.get(64)
         # data: dispatch.Case
         self.assertEqual(data.system, "some_random_data")
@@ -269,7 +268,7 @@ class ProxyServerParse(unittest.TestCase):
 
     def setUp(self):
         global output
-        test_inputs ='{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}'
+        test_inputs ='{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","set_system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}'
         output = api_daemon.Parser.parse(test_inputs)
         expected_results = [
             dispatch.Case(client="jkacina", api_id="8e861212-c990-4ff9-b8e7-3c09da4adfb7",
@@ -295,7 +294,7 @@ class ProxyServerParse(unittest.TestCase):
         self.assertEqual(output.platform, 'pc')
 
     def test_parse(self):
-        # test_inputs = ['{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}']
+        # test_inputs = ['{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","set_system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}']
         # output = api_daemon.Parser.parse(test_inputs[0])
         self.assertIsNotNone(output)
         self.assertIsInstance(output, dispatch.Case)

@@ -13,7 +13,9 @@ except ImportError:
     if hc is None:
         raise FileNotFoundError("unable to locate playground.shared_resources")
     elif hc.get_pluginpref("installDir") is None:
-        print('\0034[CONFIGURATION ERROR]\t[FATAL]: please set a installDir preference using /installDir path/to/dispatch.py, functionality is next to zero until this is done!')
+        print('\0034[CONFIGURATION ERROR]: please set a installDir preference using the command'
+              ' /installDir path/to/dispatch.py, functionality is next to zero until this is done!'
+              '\n if you think you are seeing this in error, check that the path you set it correct')
         Case = None  # that way it at least exists...
     else:
         try:
@@ -115,7 +117,7 @@ def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
     @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
     def wrapper(arg,*args, **kwargs):
-        wrapped_function(arg, args, kwargs)
+        wrapped_function(arg, *args, **kwargs)
         if hc is not None:
             return hc.EAT_ALL
         else:
@@ -240,7 +242,7 @@ class Parser:
             log("parse_inject", 'Beginning parse attempt')
             i = 0
             # client = inject_args['client']
-            # platform = inject_args['system']
+            # platform = inject_args['set_system']
             case = -1
             log("step1", 'completed!')
             client = platform = None  # init before use
@@ -308,20 +310,20 @@ class Parser:
                 z = i + 1
                 system = ""
                 while phrase[z] != "-":
-                    if "(" in phrase[z] or "not" in phrase[z]:  # checks if we have reached the distance from part of the system
-                        break  # and discard, since it is not part of the actual system name
+                    if "(" in phrase[z] or "not" in phrase[z]:  # checks if we have reached the distance from part of the set_system
+                        break  # and discard, since it is not part of the actual set_system name
                     else:
                         system += " "
                         system += Utilities.strip_fancy(phrase[z], allowed_fancy="-")
                         z += 1
-                # system.find()
+                # set_system.find()
             i += 1
         if cid is None:
             cid = -1  # error handling, so the case can still be deleted
         # return Case(client, cid, cr, platform, stage=0)
         return Case(client=client, index=cid, cr=cr, platform=platform, system=system, language=lang, raw=phrase)
         # return {'client': client, 'platform': platform, 'cr': cr, "case": cid, "lang": lang,
-        #                 'system': system, 'stage': 0}
+        #                 'set_system': set_system, 'stage': 0}
 
     @staticmethod
     def parse_clear(**kwargs):
@@ -388,7 +390,7 @@ class Tracker:
     @staticmethod
     @eat_all
     def readout(*args):
-        headers = ["#", "Client", "Platform", "cr", "system", "Assigned rats", "stage"]
+        headers = ["#", "Client", "Platform", "cr", "set_system", "Assigned rats", "stage"]
         data = []
         # print("readout\t",database)
         # log("readout", "- Index - | - client- | - platform - |- - - - - System - - - - -| - - - - Rats - - - -")
@@ -422,10 +424,10 @@ class Tracker:
                     log("inject", "ratsignal is present")
             except Exception as e:
                 pass
-            # inject_args = {'client': list_arguments[1], 'system': list_arguments[3], 'platform': list_arguments[2]}
-            # order: client, platform, system
+            # inject_args = {'client': list_arguments[1], 'set_system': list_arguments[3], 'platform': list_arguments[2]}
+            # order: client, platform, set_system
             # hc.command("say !inject {} {} {}".format(inject_args['client'], inject_args['platform'],
-            #                                          inject_args['system']))
+            #                                          inject_args['set_system']))
             pass
 
         if from_capture:
@@ -449,7 +451,7 @@ class Tracker:
     @staticmethod
     def append(**kwargs):
         """Appends a new entry to the db
-        expected: None,id,client,system,platform,cr,language
+        expected: None,id,client,set_system,platform,cr,language
         """
 
         log('toggle_verbose', "args =\t{}".format(kwargs))
@@ -560,10 +562,10 @@ class Commands:
                             system = word_eol[0][4]
                         except IndexError:
                             print(word_eol)
-                            log("new_case", "no system data.. generating stub with client name and platform...")
+                            log("new_case", "no set_system data.. generating stub with client name and platform...")
                             Tracker.append(data=Case(index=index, client=client, platform=platform))
                         else:
-                            log("new_case", "generating stub with client, platform,  and system...", True)
+                            log("new_case", "generating stub with client, platform,  and set_system...", True)
                             Tracker.append(data=Case(index=index, client=client, system=system, platform=platform))
 
         def func(self,*args, **kwargs):
@@ -598,70 +600,85 @@ class Commands:
             log("code_red.func","word = {}".format(word))
             self.code_red(*word, word_eol, userdata)  # pack, unpack. pack, unpack.
 
+    class SetClient(CommandBase):
+        name = "client"
+        @eat_all
+        def client(word, word_eol, userdata):
+            index = None  # just in case the try itself fails before its assigned
+            try:
+                index = int(word[1])
+                case = Tracker.get_case(value=index)
+                # case : Case
+                case.Client(word_eol[0][2])
 
-    @staticmethod
-    @eat_all
-    def client(word, word_eol, userdata):
-        index=None  # just in case the try itself fails before its assigned
-        try:
-            index = int(word[1])
-            case = Tracker.get_case(value=index)
-            # case : Case
-            case.Client(word_eol[0][2])
+            except ValueError:
+                log("client_name", "\0034 ERROR: {} is not a number!".format(word[1]), True)
+            except AttributeError:
+                log("client_name", "\0034 unable to find case {}".format(index))
+            except IndexError:
+                log("client", "\0033 Expected form: /client case_number client_irc_name", True)
 
-        except ValueError:
-            log("client_name", "\0034 ERROR: {} is not a number!".format(word[1]), True)
-        except AttributeError:
-            log("client_name", "\0034 unable to find case {}".format(index))
-        except IndexError:
-            log("client", "\0033 Expected form: /client case_number client_irc_name", True)
+        def func(self, *args,**kwargs):
+            self.client(*args, **kwargs)
 
-    @staticmethod
-    @eat_all
-    def system(word, word_eol, userdata):
-        try:
-            # log("system", word)
-            # log("system", word_eol)
-            index = int(word[1])
-            log("system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol))
-            system = word_eol[0][2]  # assuming anything after the case number is part of the system...
-            case = database.get(index)
-            # case: Case
-            case.System(system)
-        except IndexError:
-            log("system", "expected syntax: /sys case_number long-system-name-that-can-contain-spaces", True)
-        except ValueError:
-            log("system", "case_number must be an integer, got {}".format(word[1]), True)
+    class SetSystem(CommandBase):
+        name = "set_system"
+        alias = ["sys"]
 
-    @staticmethod
-    @eat_all
-    def platform(word, word_eol, userdata):
-        """
-        updates a client's case to a valid platform
-        :param word:
-        :param word_eol:
-        :param userdata:
-        :return:
-        """
-        valid_platforms = ["pc", "xb", "ps"]
-        try:
-            index = int(word[1])
-            platform = word[2].lower()
-            if platform not in valid_platforms:
-                log(
-                    "platform", "{platform} is not recognized, valid options are {options}".format(
-                        platform=platform, options=valid_platforms), True)
-                raise ValueError()
-        except IndexError:
-            log("platform", "Expected form is /platform case_number platform", True)
-        except ValueError:
-            log("platform", "invalid argument", True)
-        else:
-            case = database.get(index)
-            # case: Case
+        @eat_all
+        # self, word, word_eol, userdata
+        def func(self, word, word_eol, userdata=None):
+            try:
+                # log("set_system", word)
+                # log("set_system", word_eol)
 
-            case.Platform(platform)
-            log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
+                print("word={}".format(word))
+                index = int(word[1])
+                log("set_system", "type of word_eol is  {} with data {}".format(type(word_eol), word_eol[1]))
+                system = word_eol[2]  # assuming anything after the case number is part of the set_system...
+                case = database.get(index)
+                # case: Case
+                case.System(system)
+            except IndexError:
+                log("set_system", "expected syntax: /sys case_number long-set_system-name-that-can-contain spaces", True)
+            except ValueError:
+                log("set_system", "case_number must be an integer, got {}".format(word[1]), True)
+
+        # def func(self, *args, **kwargs):
+        #     self.set_system(*args, **kwargs)
+
+    class SetPlatform(CommandBase):
+        @eat_all
+        def platform(self, word, word_eol, userdata):
+            """
+            updates a client's case to a valid platform
+            :param word:
+            :param word_eol:
+            :param userdata:
+            :return:
+            """
+            valid_platforms = ["pc", "xb", "ps"]
+            try:
+                index = int(word[1])
+                platform = word[2].lower()
+                if platform not in valid_platforms:
+                    log(
+                            "platform", "{platform} is not recognized, valid options are {options}".format(
+                                    platform=platform, options=valid_platforms), True)
+                    raise ValueError()
+            except IndexError:
+                log("platform", "Expected form is /platform case_number platform", True)
+            except ValueError:
+                log("platform", "invalid argument", True)
+            else:
+                case = database.get(index)
+                # case: Case
+
+                case.Platform(platform)
+                log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
+
+        def func(self, *args,**kwargs):
+            self.platform(*args, **kwargs)
 
     @staticmethod
     @eat_all
@@ -1123,11 +1140,14 @@ def init():
         Commands.SetInstallDirectory,
         Commands.NewCase,
         Commands.CodeRed,
-        StageManager.Say
+        StageManager.Say,
+        Commands.SetClient,
+        Commands.SetPlatform,
+        Commands.SetSystem
     ]  # i would have CommandBase do it itself but thats black magic and headaches.
         # not to mention 'hacky' soo this will have to do
     # commands = {
-    #     'sys': cmd.system,
+    #     'sys': cmd.set_system,
     #     'installDir': cmd.set_install_dir,
     #     'potato': cmd.print_hook,
     #     'test': cmd.run_tests,
@@ -1148,7 +1168,7 @@ def init():
     #     "raw_board": Tracker.debug_print,
     #     "mv": cmd.change_index,
     #     "client": cmd.client,
-    #     "sys": cmd.system,
+    #     "sys": cmd.set_system,
     #     "cr": cmd.code_red,
     #     "platform": cmd.platform,
     #     "assign": cmd.add_rats,

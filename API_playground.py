@@ -1,9 +1,5 @@
 import json
 import threading
-import websocket
-from time import sleep
-import json
-import threading
 from time import sleep
 
 import websocket
@@ -90,7 +86,7 @@ class Api:
                 client=entry['attributes']['data']['IRCNick'],
                 language=entry["attributes"]['data']['langID'],
                 cr=entry['attributes']['codeRed'],
-                system=entry['attributes']['system'],
+                system=entry['attributes']['set_system'],
                 index=entry['attributes']['data']['boardIndex'],
                 platform=entry['attributes']['platform'],
                 raw=entry

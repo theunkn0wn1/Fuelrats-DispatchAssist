@@ -43,7 +43,7 @@ class Parser:
         try:
             api_id = data['data']['id']  # API ID
             client = data['data']['attributes']['data']['IRCNick']  # as their IRC nickname can differ from their name
-            system = data['data']['attributes']['system']  # fetch the system
+            system = data['data']['attributes']['set_system']  # fetch the set_system
             cr = data['data']['attributes']['codeRed']  # code red status
             platform = data['data']['attributes']['platform']  # platform
             index = data['data']['attributes']['data']['boardIndex']  # where they are on the board

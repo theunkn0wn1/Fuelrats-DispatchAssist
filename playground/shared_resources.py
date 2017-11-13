@@ -58,13 +58,13 @@ class Case:
 
     def System(self, system):
         """
-        Changes the Case's current system
-        :param system:str new system
+        Changes the Case's current set_system
+        :param system:str new set_system
         """
         if type(system) is str:
             self.system = system
         else:
-            raise TypeError("system must be of type str")
+            raise TypeError("set_system must be of type str")
 
     def Rats(self, rats, mode='add'):
         if isinstance(rats, str):
