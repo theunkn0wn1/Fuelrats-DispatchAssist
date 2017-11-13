@@ -56,8 +56,8 @@ Use the command `/assign case_number rat1 rat2... ratn` at minimum you must give
 
 ### 4. Removing rats
 Mistakes are made, sometimes you give the wrong rat the go. you can use `/unassign case_number rat1.. ratn` to remove them from tracking
-### 5. Changing set_system
-Should the client give you an inaccurate set_system name you can update it using the command `/sys case_number really_long_syste_name_that_can_contain_spaces`
+### 5. Changing system
+Should the client give you an inaccurate system name you can update it using the command `/sys case_number really_long_syste_name_that_can_contain_spaces`
 Anything after the case number will be treated as part of the System.
 
 ### 6. Updating platform
