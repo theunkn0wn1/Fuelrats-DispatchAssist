@@ -649,7 +649,7 @@ class Commands:
 
     class SetPlatform(CommandBase):
         @eat_all
-        def platform(self, word, word_eol, userdata):
+        def func(self, word, word_eol, userdata=None):
             """
             updates a client's case to a valid platform
             :param word:
@@ -677,8 +677,6 @@ class Commands:
                 case.Platform(platform)
                 log("platform", "case #{id} ({client}'s) case got updated".format(id=index, client=case.client), True)
 
-        def func(self, *args,**kwargs):
-            self.platform(*args, **kwargs)
 
     @staticmethod
     @eat_all

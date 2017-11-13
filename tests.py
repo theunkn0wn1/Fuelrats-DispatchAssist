@@ -86,7 +86,6 @@ class Backend_tests(unittest.TestCase):
 
     def test_change_system(self):
         """
-        depends on test_a_get_case
         updates case 42's set_system and verifies the result
         """
         data = dispatch.Tracker.get_case(value="client")
@@ -94,7 +93,7 @@ class Backend_tests(unittest.TestCase):
         dispatch.log("test_change_system", "database itself is {}".format(dispatch.database), True)
         self.assertIsNotNone(data)
         data.System("al-qaum")
-        self.assertEqual(data.set_system, "al-qaum")
+        self.assertEqual(data.system, "al-qaum")
 
     def test_change_client_name(self):
         """
@@ -250,8 +249,9 @@ class CommandTesting(unittest.TestCase):
         cmd = dispatch.CommandBase.getCommand("new")
         self.assertIsNotNone(cmd)
         print("cmd = {}".format(cmd))
-        cmd.func(['new', "ki"], None, None)
-
+        cmd.func(['new', "2", "ki"], None, None)
+        case = dispatch.Tracker.get_case(value=2)
+        self.assertIsNotNone(case)
     # @unittest.expectedFailure
     def test_find_by_alias(self):
         commands = ['create', 'new', 'cr']
