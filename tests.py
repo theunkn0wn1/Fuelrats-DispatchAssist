@@ -1,6 +1,7 @@
 import unittest
 
 import dispatch
+import playground.api_daemon as api_daemon
 
 
 class Backend_tests(unittest.TestCase):
@@ -52,13 +53,18 @@ class Backend_tests(unittest.TestCase):
         db = dispatch.database
         dispatch.on_message_received(dispatch.xb_rsig_message)
         ret = dispatch.Tracker.get_case(value=expected_client)
-        self.assertEqual(len(dispatch.database), 2)
+        # self.assertEqual(len(dispatch.database), 2)
         self.assertIsInstance(ret, dispatch.Case)
         self.assertEqual(ret.platform.lower(), 'xb')
         self.assertEqual(ret.client, expected_client)
         self.assertEqual(ret.system, " CRUCIS SECTOR BQ-P A5-1")  # not sure *why* this needed a space
         self.assertEqual(ret.index, -1)
         self.assertEqual(ret.rats, [])
+
+    def test_rat_Signal(self):
+        dispatch.on_message_received(dispatch.pc_rsig_message)
+        data = dispatch.database.get(4)
+        self.assertIsNotNone(data)
 
     def test_clear(self):
         ret = dispatch.Parser.parse(data=dispatch.clear_msg)
@@ -75,13 +81,12 @@ class Backend_tests(unittest.TestCase):
         """
         data = dispatch.Tracker.get_case(value="client")
         self.assertIsNotNone(data)
-        data.Platform('xb')
-        self.assertEqual(data.platform, 'xb')
+        data.Platform('XB')
+        self.assertEqual(data.platform, 'XB')
 
     def test_change_system(self):
         """
-        depends on test_a_get_case
-        updates case 42's system and verifies the result
+        updates case 42's set_system and verifies the result
         """
         data = dispatch.Tracker.get_case(value="client")
         dispatch.log("test_change_system", "data is {}".format(data), True)
@@ -160,6 +165,12 @@ class CommandTesting(unittest.TestCase):
     """
     For the testing of / commands
     """
+
+    @classmethod
+    def setUpClass(cls):
+        dispatch.init()
+        super().setUpClass()
+
     def setUp(self):
         """
         shared vars that must be initialized prior to test
@@ -180,49 +191,124 @@ class CommandTesting(unittest.TestCase):
     def test_system(self):
         # ['sys', '2', 'overall', 'asd']  # word
         # (['sys 2 overall asd', '2 overall asd', 'overall asd', 'asd'], None)  # word_eol
-        dispatch.Commands.system(
-            ['system', '64', 'some_random_data'],
-            (["", "64 some_random_data", "some_random_data"]),
-            None)
+        cmd = dispatch.CommandBase.getCommand('sys')
+        self.assertEqual(cmd.func(
+                ['set_system', '64', 'some_random_data'],["", "64 some_random_data", "some_random_data"]), 3)
         data = dispatch.database.get(64)
         # data: dispatch.Case
         self.assertEqual(data.system, "some_random_data")
 
     def test_cr(self):
-        dispatch.Commands.code_red(["cr", "64"], ([]), None)
+        # dispatch.Commands.code_red(["cr", "64"], ([]), None)
         data = dispatch.database.get(64)
+        command = dispatch.CommandBase.getCommand('cr')
         self.assertIsNotNone(data)
-        self.assertTrue(data.cr)
-        dispatch.Commands.code_red(["cr", "64"], ([]), None)
         self.assertFalse(data.cr)
+        self.assertEqual(command.func(["cr", "64"],None,None), 3)
+        self.assertTrue(data.cr)
 
     def test_platform_valid(self):
-        expected_platforms = ['xb', 'pc', 'ps']
+        expected_platforms = ['XB', 'PC', 'PS']
+        command = dispatch.CommandBase.getCommand('platform')
         data = dispatch.database.get(64)
         # data: dispatch.Case
         for platform in expected_platforms:
             with self.subTest(platform=platform):
-                    dispatch.Commands.platform(['platform', '64', platform], None, None)
+                    self.assertEqual(command.func(['platform', '64', platform], None, None),3)
                     self.assertEqual(data.platform, platform)
 
     def test_platform_invalid(self):
-        bad_platforms = ['xbox', "pee-cee","ps3",""]
+        bad_platforms = ['xbox', "pee-cee","ps3","", None, 'xbone', 'pc master race']
         data = dispatch.database.get(64)
+        command = dispatch.CommandBase.getCommand('platform')
         # data: dispatch.Case
         for platform in bad_platforms:
             with self.subTest(platform=platform):
-                dispatch.Commands.platform(['platform', '64', platform], None, None)
+                self.assertEqual(command.func(['platform', '64', platform], None, None),3)
         self.assertEqual(data.platform, 'ps')  # the platform should remain unchanged.
 
     def test_add_rats(self):
-        """via command this time"""
+        """Via getCommand"""
         expected_rats = ["theunkn0wn1[pc]", "ninjaKiwi"]
         command = ["append", "64"] + expected_rats
         data = dispatch.database.get(64)
-        dispatch.Commands.add_rats(command)
+        cmd_func = dispatch.CommandBase.getCommand('assign')
+        self.assertEqual(cmd_func.func(command,None),3)
         # data: dispatch.Case
         self.assertEqual(data.rats, expected_rats)
 
+    def test_say(self):
+        # dispatch.StageManager.Say() # init
+        self.assertNotEqual(dispatch.stageBase.registered_commands, {})
+        command = dispatch.stageBase.getCommand("say")
+        # command: dispatch.CommandBase
+        self.assertIsNotNone(command)
+        print(command)
+        self.assertEqual(command.func(message="test"), 3)
+
+    def test_cmd_new_case(self):
+        """Test if one can register a command and invoke it"""
+
+        cmd = dispatch.CommandBase.getCommand("new")
+        self.assertIsNotNone(cmd)
+        print("cmd = {}".format(cmd))
+        self.assertEqual(cmd.func(['new', "2", "ki"], None, None), 3)  # the 3 ensures we didn't miss a wrapper
+        case = dispatch.Tracker.get_case(value=2)
+        self.assertIsNotNone(case)
+    # @unittest.expectedFailure
+    def test_find_by_alias(self):
+        commands = ['create', 'new', 'cr']
+        for name in commands:
+            with self.subTest(cmd = name):
+                found = dispatch.CommandBase.getCommand(name=name)
+                self.assertIsNotNone(found)
+
+
+
+
+class ProxyServerParse(unittest.TestCase):
+    output = None
+
+    def setUp(self):
+        global output
+        test_inputs ='{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","set_system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}'
+        output = api_daemon.Parser.parse(test_inputs)
+        expected_results = [
+            dispatch.Case(client="jkacina", api_id="8e861212-c990-4ff9-b8e7-3c09da4adfb7",
+                          platform='pc', system="PENCIL SECTOR BV-O A6-4")]
+        # output: dispatch.Case
+
+    def test_index(self):
+        self.assertEqual(output.index, 5)
+
+    def test_cr(self):
+        self.assertFalse(output.cr)
+
+    def test_client(self):
+        self.assertEqual(output.client, "jkacina")
+
+    def test_id(self):
+        self.assertEqual(output.api_id, "8e861212-c990-4ff9-b8e7-3c09da4adfb7")
+
+    def test_system(self):
+        self.assertEqual(output.system, "PENCIL SECTOR BV-O A6-4")
+
+    def test_platform(self):
+        self.assertEqual(output.platform, 'pc')
+
+    def test_parse(self):
+        # test_inputs = ['{"meta":{"event":"rescueCreated"},"data":{"id":"8e861212-c990-4ff9-b8e7-3c09da4adfb7","type":"rescues","attributes":{"notes":"","outcome":null,"title":null,"firstLimpetId":null,"client":"jkacina","set_system":"PENCIL SECTOR BV-O A6-4","codeRed":false,"unidentifiedRats":[],"status":"open","platform":"pc","quotes":[{"author":"Mecha","message":"RATSIGNAL - CMDR jkacina - System: PENCIL SECTOR BV-O A6-4 - Platform: PC - O2: OK - Language: English (en-CA)","createdAt":"2017-10-16T17:11:08.216278","updatedAt":"2017-10-16T17:11:08.216262","lastAuthor":"Mecha"}],"data":{"langID":"en","status":{},"IRCNick":"jkacina","boardIndex":5,"markedForDeletion":{"marked":false,"reason":"None.","reporter":"Noone."}},"updatedAt":"2017-10-16T17:11:07.794Z","createdAt":"2017-10-16T17:11:07.794Z","deletedAt":null},"relationships":{"rats":{"data":null},"firstLimpet":{"data":null},"epics":{"data":null}},"links":{"self":"/rescues/8e861212-c990-4ff9-b8e7-3c09da4adfb7"}}}']
+        # output = api_daemon.Parser.parse(test_inputs[0])
+        self.assertIsNotNone(output)
+        self.assertIsInstance(output, dispatch.Case)
+        self.assertEqual(output.client, "jkacina")
+        self.assertEqual(output.api_id, "8e861212-c990-4ff9-b8e7-3c09da4adfb7")
+        self.assertEqual(output.platform, "pc")
+        self.assertEqual(output.system, "PENCIL SECTOR BV-O A6-4")
+        self.assertFalse(output.cr)
+        self.assertEqual(output.index, 5)
+
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
+    dispatch.verbose_logging = True  # for when shit hits the fan
     unittest.main()
