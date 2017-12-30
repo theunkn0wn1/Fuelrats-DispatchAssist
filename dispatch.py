@@ -1,5 +1,4 @@
 import sys
-from abc import ABC, abstractmethod
 
 try:
     import hexchat as hc
@@ -7,11 +6,8 @@ except ImportError:
     hc = None
     print("[WARN]: Hexchat module NOT found!")
 try:
-    from playground.shared_resources import Case
-    from playground.shared_resources import eat_all
-    from playground.shared_resources import Parser
-    from playground.shared_resources import Utilities
-    from playground.shared_resources import Logger
+    from playground.shared_resources import Case, eat_all, Parser, Utilities, Logger, CommandBase, hc
+
 except ImportError:
     if hc is None:
         raise FileNotFoundError("unable to locate playground.shared_resources")
@@ -53,57 +49,6 @@ else:
     print("dispatch.py loading\n author: Theunkn0wn1")
 # Commands
 
-
-class CommandBase(ABC):
-    """
-    Abstract for defining stage commands
-    """
-    registered_commands = {}  # registry
-    name = ""  # command name
-    alias = []  # command alias
-    # commands = {}
-    @classmethod
-    def _registerCommand(cls, func_instance, hook=True) -> None:
-        """
-
-        :param func_instance:
-        :return:
-        """
-        new_entry = {func_instance.name:func_instance}
-        if hc is not None:
-            if hook:
-                hc.hook_command(func_instance.name, func_instance.func)
-        if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
-            for val in func_instance.alias:
-                log("CommandBase._registerCommand", "registering hook for {}".format(val))
-                new_entry.update({val:func_instance})
-                if hc is not None and hook:
-                    hc.hook_command(val, func_instance.func)
-
-        cls.registered_commands.update(new_entry)
-
-    @classmethod
-    def getCommand(cls, name):
-        """
-        Fetches command by name or alias
-        :param name: name/alias to lookup
-        :return: CommandBase Instance
-        """
-        if isinstance(name, str):
-            if name in cls.registered_commands:
-                return cls.registered_commands[name]
-            else:
-                return None
-        else:
-            raise TypeError("name was of type {} with data {}".format(type(name), name))
-
-    @abstractmethod
-    def func(self, word, word_eol, userdata=None):
-        """Command action"""
-        raise NotImplementedError("func method not defined, please do tell the developer they missed a spot.")
-
-    def __init__(self):
-        self._registerCommand(self)
 
 
 

@@ -1,4 +1,5 @@
 import json
+from abc import ABC, abstractmethod
 from functools import wraps
 
 # Globals  # im pretty sure im going to need these since im importing into hex...
@@ -7,13 +8,14 @@ __module_version__ = "0.0.2"
 __module_description__ = "Shared resources for Dispatch and its children"
 verbose_logging = False  # if you want to see everything, it can be deafening.
 """Shared data structures for communicating with the daemon"""
+try:
+    import hexchat as hc
+except ImportError as ex:
+    hc = None
 
 def eat_all(wrapped_function):
     """:returns hc.EAT_ALL at end of wrapped function"""
-    try:
-        import hexchat as hc
-    except ImportError as ex:
-        hc = None
+
 
     @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
     def wrapper(arg,*args, **kwargs):
@@ -385,4 +387,55 @@ class Case:
         else:
             log("case.__contains__", "value is {} of type {}".format(item, type(item)))
             return False
+
+class CommandBase(ABC):
+    """
+    Abstract for defining stage commands
+    """
+    registered_commands = {}  # registry
+    name = ""  # command name
+    alias = []  # command alias
+    # commands = {}
+    @classmethod
+    def _registerCommand(cls, func_instance, hook=True) -> None:
+        """
+
+        :param func_instance:
+        :return:
+        """
+        new_entry = {func_instance.name:func_instance}
+        if hc is not None:
+            if hook:
+                hc.hook_command(func_instance.name, func_instance.func)
+        if func_instance.alias:  # type coercion, as long as its not empty nor None this is true
+            for val in func_instance.alias:
+                log("CommandBase._registerCommand", "registering hook for {}".format(val))
+                new_entry.update({val:func_instance})
+                if hc is not None and hook:
+                    hc.hook_command(val, func_instance.func)
+
+        cls.registered_commands.update(new_entry)
+
+    @classmethod
+    def getCommand(cls, name):
+        """
+        Fetches command by name or alias
+        :param name: name/alias to lookup
+        :return: CommandBase Instance
+        """
+        if isinstance(name, str):
+            if name in cls.registered_commands:
+                return cls.registered_commands[name]
+            else:
+                return None
+        else:
+            raise TypeError("name was of type {} with data {}".format(type(name), name))
+
+    @abstractmethod
+    def func(self, word, word_eol, userdata=None):
+        """Command action"""
+        raise NotImplementedError("func method not defined, please do tell the developer they missed a spot.")
+
+    def __init__(self):
+        self._registerCommand(self)
 
