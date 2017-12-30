@@ -137,3 +137,57 @@ class Request:
             'meta': self.meta
         }
         return json.dumps(obj)
+
+
+class Stage():
+    """
+    Contains a missions Stage data
+    """
+
+    def __init__(self):
+        self.last_run_command = ""
+
+    def get_next_command(self):
+        pass
+
+from enum import Enum
+events = []
+class Logger:
+    pass
+
+    @classmethod
+    class LogSeverity(Enum):
+        """
+        Enum defining severity by name
+        """
+        info = 0
+        low = 1
+        warning = 2
+        error = 3
+        fatal = 4
+    class Event():
+        """
+        Event object, expects severity and a message
+        """
+
+        def __init__(self, severity: Logger.LogSeverity, message: str):
+            self.severity = severity
+            self.message = message
+    @classmethod
+    def print_event(cls,event: Event) -> None:
+        """
+        prints a given Event to the stdout
+        :param event: Event object to print
+        :return:None
+        """
+        if event.severity is cls.LogSeverity.info:
+            print("[   info]: {}".format(event.message))
+        elif event.severity is cls.LogSeverity.low:
+            print("[    low]: {}".format(event.message))
+        elif event.severity is cls.LogSeverity.warning:
+            print("[warning]: {}".format(event.message))
+        elif event.severity is cls.LogSeverity.error:
+            print("[   error: {}".format(event.message))
+        elif event.severity is cls.LogSeverity.fatal:
+            print("[  fatal]: {}".format(event.message))
+

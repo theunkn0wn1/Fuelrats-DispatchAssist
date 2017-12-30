@@ -239,8 +239,8 @@ class CommandTesting(unittest.TestCase):
 
     def test_say(self):
         # dispatch.StageManager.Say() # init
-        self.assertNotEqual(dispatch.stageBase.registered_commands, {})
-        command = dispatch.stageBase.getCommand("say")
+        self.assertNotEqual(dispatch.StageBase.registered_commands, {})
+        command = dispatch.StageBase.getCommand("say")
         # command: dispatch.CommandBase
         self.assertIsNotNone(command)
         print(command)

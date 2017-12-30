@@ -104,7 +104,7 @@ class CommandBase(ABC):
 
 
 
-class stageBase(CommandBase):
+class StageBase(CommandBase):
     """
     varient of commandBase to register stageCommands
     """
@@ -131,6 +131,7 @@ def eat_all(wrapped_function):
         else:
             return 3  # so i can test commands without hexchat being loaded,3 is the enum value
     return wrapper
+
 
 def log(trace, msg, verbose=False):
     global verbose_logging
@@ -256,7 +257,7 @@ class Parser:
             # platform = inject_args['set_system']
             case = -1
             log("step1", 'completed!')
-            client = platform = None  # init before use
+            client = platform =system = None  # init before use
             for phrase in capture:
                 if phrase == 'PC)' or phrase == 'PS4)' or phrase == 'XB)':
                     log('step2', 'searching for platform...')
@@ -957,13 +958,14 @@ class Commands:
 
 class StageManager:
     """Tracks client stage and responds accordingly"""
-    class Say(stageBase):
+    class Say(StageBase):
         """
         Print a message to the channel, with optional colour
         """
         name = 'say'
         alias = []
-        hookable = False# prevent this command from hooking into the clients command system
+        hookable = False  # prevent this command from hooking into the clients command system
+
         @eat_all
         def func(self,*args, **kwargs):
             """Output a message into the channel (*this is server-side!*)"""
