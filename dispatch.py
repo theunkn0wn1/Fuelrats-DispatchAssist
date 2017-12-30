@@ -1,6 +1,5 @@
 import sys
 from abc import ABC, abstractmethod
-from functools import wraps  # so decorators don't swallow docstrings
 
 try:
     import hexchat as hc
@@ -9,6 +8,7 @@ except ImportError:
     print("[WARN]: Hexchat module NOT found!")
 try:
     from playground.shared_resources import Case
+    from playground.shared_resources import eat_all
 except ImportError:
     if hc is None:
         raise FileNotFoundError("unable to locate playground.shared_resources")
@@ -119,18 +119,6 @@ class StageBase(CommandBase):
 
 
 # Wrappers
-
-def eat_all(wrapped_function):
-    """:returns hc.EAT_ALL at end of wrapped function"""
-    @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
-    def wrapper(arg,*args, **kwargs):
-        wrapped_function(arg, *args, **kwargs)
-        if hc is not None:
-            # print("returning {}".format(hc.EAT_ALL))
-            return hc.EAT_ALL
-        else:
-            return 3  # so i can test commands without hexchat being loaded,3 is the enum value
-    return wrapper
 
 
 def log(trace, msg, verbose=False):

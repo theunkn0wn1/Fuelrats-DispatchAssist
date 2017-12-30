@@ -1,11 +1,28 @@
 import json
-
+from functools import wraps
 # Globals  # im pretty sure im going to need these since im importing into hex...
 __module_name__ = "Dispatch-resources"
 __module_version__ = "0.0.2"
 __module_description__ = "Shared resources for Dispatch and its children"
 verbose_logging = False  # if you want to see everything, it can be deafening.
 """Shared data structures for communicating with the daemon"""
+
+def eat_all(wrapped_function):
+    """:returns hc.EAT_ALL at end of wrapped function"""
+    try:
+        import hexchat as hc
+    except ImportError as ex:
+        hc = None
+
+    @wraps(wrapped_function)  # prevents decorator from swallowing docstrings
+    def wrapper(arg,*args, **kwargs):
+        wrapped_function(arg, *args, **kwargs)
+        if hc is not None:
+            # print("returning {}".format(hc.EAT_ALL))
+            return hc.EAT_ALL
+        else:
+            return 3  # so i can test commands without hexchat being loaded,3 is the enum value
+    return wrapper
 
 
 def log(trace, msg, verbose=False):
