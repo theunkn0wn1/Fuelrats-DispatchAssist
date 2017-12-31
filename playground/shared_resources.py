@@ -273,6 +273,17 @@ class Parser:
         """
         # [':MechaSqueak[BOT]!sopel@bot.fuelrats.com', 'PRIVMSG', '#fuelrats', ':tonyg940:', 'To', 'add', 'th
         data = kwargs['data']
+        if isinstance(data, str):
+            # data coming from logfiles
+            import logging
+            logger = logging.getLogger("alerts.parser")
+            logger.debug("raw data = {}".format(data))
+            data = data.replace("\t", " ")
+            logger.debug("tab replaced raw data is {}".format(data))
+            data = data.split(" ")
+            logger.debug("split data is {}".format(data))
+            # data = [foo.split("\t") for foo in data]
+            logger.debug("final formed data = {}".format(data))
         event_type = data[3]  # What kind of input
         if event_type == ":RATSIGNAL":
             return Parser.parse_ratsignal(data)
