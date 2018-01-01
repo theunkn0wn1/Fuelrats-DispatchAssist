@@ -66,6 +66,7 @@ class Backend_tests(unittest.TestCase):
         data = dispatch.database.get(4)
         self.assertIsNotNone(data)
 
+
     def test_clear(self):
         ret = dispatch.Parser.parse(data=dispatch.clear_msg)
         self.assertIsInstance(ret, str)
@@ -307,6 +308,26 @@ class ProxyServerParse(unittest.TestCase):
         self.assertEqual(output.system, "PENCIL SECTOR BV-O A6-4")
         self.assertFalse(output.cr)
         self.assertEqual(output.index, 5)
+
+
+class ParserTests(unittest.TestCase):
+    """
+    Tests for parser library
+    """
+
+    # @unittest.expectedFailure
+    def test_string_ratsignal(self):
+        data = dispatch.Parser.parse(data="Dec 31 14:58:30 <MechaSqueak[BOT]>	RATSIGNAL - CMDR hagenw100 - System: LP"
+                                          " 634-1 (37.88 LY from Sol) - Platform: PC - O2: OK - Language: English"
+                                          " (en-US) (Case #2)")
+
+        print(data)
+        self.assertIsNotNone(data)
+        self.assertIsInstance(data, dispatch.Case)
+        self.assertFalse(data.cr)
+        self.assertEqual(data.platform, "PC")
+        self.assertEqual(data.client, "hagenw100")
+        self.assertEqual(data.system, " LP 634-1")
 
 
 if __name__ == '__main__':  # this prevents script code from being executed on import. (bad!)
